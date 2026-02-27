@@ -6,12 +6,48 @@ const SECTION_LABELS = {
 };
 
 // === GLOBAL STATE VARIABLES ===
-let checkData = JSON.parse(localStorage.getItem('rap_check_data') || '{}');
+let checkData = JSON.parse(localStorage.getItem('rap_events_v1') || '{}');
+let archivedEvents = JSON.parse(localStorage.getItem('rap_archived_v1') || '{}');
 let equipos = window.equipos || [];
 let movimientos = JSON.parse(localStorage.getItem('rap_movimientos_v1') || '[]');
 
 function saveMovimientos(data) {
   localStorage.setItem('rap_movimientos_v1', JSON.stringify(data));
+}
+
+async function pullUsers() {
+  try {
+    const res = await fetch(`${API_URL}?action=pullUsers&token=${API_TOKEN}`);
+    const result = await res.json();
+    if (result.success && Array.isArray(result.data)) {
+      localStorage.setItem('rap_users_v2', JSON.stringify(result.data));
+      return result.data;
+    }
+  } catch (e) {
+    console.error("Error pulling users:", e);
+  }
+  return getUsers();
+}
+
+async function pushUsers(users) {
+  const current = getCurrentUser();
+  if (!current || current.role !== 'admin') {
+    showToast('Solo administradores pueden sincronizar usuarios');
+    return;
+  }
+  try {
+    await fetch(API_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'pushUsers',
+        token: API_TOKEN,
+        adminRole: current.role,
+        users: users || getUsers()
+      })
+    });
+  } catch (e) {
+    console.error("Error pushing users:", e);
+  }
 }
 
 function initUsers() {
@@ -31,6 +67,7 @@ function initUsers() {
       createdAt: new Date().toISOString()
     };
     localStorage.setItem('rap_users_v2', JSON.stringify([adminUser]));
+    // Tentatively push this first admin if possible (handled in DOMContentLoaded)
   }
 }
 initUsers();
@@ -50,6 +87,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // AUTOMATIC SYNC ON ENTRY
     try {
+      await pullUsers(); // Get global users first
       await pullSharedData(); // Get global events and movements
       await syncInventoryToIndexedDB();
     } catch (e) {
@@ -61,6 +99,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   } else {
     // No session, ensure auth screen is visible
     if (authScreen) authScreen.style.display = 'flex';
+    // Still try to pull users to have the latest list for login
+    await pullUsers();
   }
 });
 
@@ -118,73 +158,105 @@ function toggleAuth(mode) {
   if (document.getElementById('loginError')) document.getElementById('loginError').textContent = '';
 }
 
-function doLogin() {
+async function doLogin() {
   const username = (document.getElementById('loginUser').value || '').trim();
   const password = (document.getElementById('loginPass').value || '').trim();
   if (!username || !password) { showToast('Ingresa usuario y contraseña'); return; }
 
-  const users = getUsers();
-  const user = users.find(u => u.username.toLowerCase() === username.toLowerCase());
-  if (!user || user.password !== password) { showToast('Usuario o contraseña incorrectos'); return; }
-
-  if (user.status === 'pending') {
-    showToast('Tu cuenta está pendiente de aprobación por el administrador');
-    return;
-  }
-
-  if (user.status === 'denied') {
-    showToast('Tu cuenta ha sido rechazada. Contacta al administrador');
-    return;
-  }
-
-  // Login success
-  sessionStorage.setItem('rap_current_user', user.id);
-
-  // Remember User
-  const rememberObj = document.getElementById('loginRemember');
-  if (rememberObj && rememberObj.checked) {
-    localStorage.setItem('rap_saved_user', username);
-  } else {
-    localStorage.removeItem('rap_saved_user');
-  }
-
-  // Registrar login en movimientos globales si lo requiere
-  const timeStr = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
-  movimientos.unshift({
-    equip: 'Sistema', id: 'N/A', evento: 'Inicio de Sesión',
-    tipo: 'Auditoría', time: 'Hoy ' + timeStr, resp: user.username
-  });
-  saveMovimientos(movimientos);
-
   const btn = (typeof event !== 'undefined' && event) ? event.target : { textContent: '', style: {} };
-  if (btn && btn.textContent !== undefined) {
-    btn.textContent = 'Cargando...';
-    btn.style.opacity = '.7';
+  const oldText = btn.textContent;
+  btn.textContent = 'Verificando...';
+  btn.disabled = true;
+
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'login', token: API_TOKEN, username, password })
+    });
+    const result = await res.json();
+
+    if (!result.success) {
+      showToast(result.error || 'Credenciales inválidas');
+      btn.textContent = oldText;
+      btn.disabled = false;
+      return;
+    }
+
+    const user = result.data;
+    if (user.status === 'pending') {
+      showToast('Tu cuenta está pendiente de aprobación');
+      btn.textContent = oldText;
+      btn.disabled = false;
+      return;
+    }
+
+    // Login success
+    sessionStorage.setItem('rap_current_user', user.id);
+    applyUserSession(user); // Force UI update immediately
+
+    // Remember User
+    const rememberObj = document.getElementById('loginRemember');
+    if (rememberObj && rememberObj.checked) {
+      localStorage.setItem('rap_saved_user', username);
+    } else {
+      localStorage.removeItem('rap_saved_user');
+    }
+
+    // Registrar login en movimientos globales si lo requiere
+    const timeStr = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+    movimientos.unshift({
+      equip: 'Sistema', id: 'N/A', evento: 'Inicio de Sesión',
+      tipo: 'Auditoría', time: 'Hoy ' + timeStr, resp: user.username
+    });
+    saveMovimientos(movimientos);
+
+    const btn = (typeof event !== 'undefined' && event) ? event.target : { textContent: '', style: {} };
+    if (btn && btn.textContent !== undefined) {
+      btn.textContent = 'Cargando...';
+      btn.style.opacity = '.7';
+    }
+
+    // Apply session UI first
+    applyUserSession(user);
+
+    // Check if we need to sync DB or just show dashboard
+    setTimeout(async () => {
+      document.getElementById('authScreen').classList.add('hidden');
+
+      // FULL SYNC ON LOGIN
+      try {
+        await pullUsers();
+        await pullSharedData();
+        await syncInventoryToIndexedDB();
+      } catch (e) {
+        console.warn("Initial sync failed:", e);
+      }
+
+      setTimeout(() => {
+        document.getElementById('authScreen').style.display = 'none';
+        renderDashboardCharts();
+        renderScanEventOptions();
+      }, 500);
+    }, 600);
+  } catch (e) {
+    showToast('Error de conexión con el servidor');
+    console.error(e);
+    btn.textContent = oldText;
+    btn.disabled = false;
   }
-
-  // Apply session UI first
-  applyUserSession(user);
-
-  // Check if we need to sync DB or just show dashboard
-  setTimeout(async () => {
-    document.getElementById('authScreen').classList.add('hidden');
-
-    // Instead of instantly showing the dashboard, trigger the Sync
-    await syncInventoryToIndexedDB();
-
-    setTimeout(() => {
-      document.getElementById('authScreen').style.display = 'none';
-      renderDashboardCharts();
-      renderScanEventOptions();
-    }, 500);
-  }, 600);
 }
 
 // === DATABASE CONNECTION (IndexedDB & Google Apps Script) ===
-// ? Reemplaza esta URL con la URL real de tu Apps Script publicado
-// Cómo obtenerla: script.google.com ? Implementar ? Nueva implementación ? Aplicación web
 const API_URL = "https://script.google.com/macros/s/AKfycbzT7OIAlgLhved2naO9FKz4PiBn_2VSl9CK7epvZc8mr3hWcJpo4i77Kt3Mmr6kJ1V6eQ/exec";
-const DB_NAME = 'rap_inventory_db';
+const API_TOKEN = "RAP_SECURE_TOKEN_2026_V1_ISAAC";
+
+// Simple XSS Protection Helper
+function sanitize(str) {
+  if (typeof str !== 'string') return str;
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
 const STORE_NAME = 'equipos';
 const DB_VERSION = 1;
 
@@ -487,7 +559,7 @@ async function syncInventoryToIndexedDB() {
   }
 }
 
-function doSignup() {
+async function doSignup() {
   const name = (document.getElementById('signupName').value || '').trim();
   const username = (document.getElementById('signupUser').value || '').trim();
   const email = (document.getElementById('signupEmail').value || '').trim();
@@ -501,7 +573,8 @@ function doSignup() {
     return;
   }
 
-  const users = getUsers();
+  // Pull latest users to check if username exists
+  const users = await pullUsers();
   if (users.find(u => u.username.toLowerCase() === username.toLowerCase())) {
     errEl.textContent = 'Ese nombre de usuario ya existe';
     return;
@@ -512,32 +585,37 @@ function doSignup() {
     id: 'user-' + Date.now(),
     name, username, email, phone, cargo, password,
     role: 'staff',
-    status: 'pending',
-    permissions: [],
+    status: 'active', // Fast Access Enabled
+    permissions: ['inventario', 'eventos', 'movimientos'], // Restricted view access
     createdAt: new Date().toISOString()
   };
 
-  users.push(newUser);
-  saveUsers(users);
+  // Push to cloud instantly
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'signup', token: API_TOKEN, user: newUser })
+    });
+    const result = await res.json();
+    if (!result.success) throw new Error(result.error);
 
-  // Added notification for admin
-  const notifs = JSON.parse(localStorage.getItem('rap_notifs') || '[]');
-  notifs.unshift({
-    id: Date.now(),
-    msg: `Nuevo usuario registrado: ${name} (${cargo})`,
-    date: new Date().toISOString(),
-    read: false
-  });
-  if (notifs.length > 50) notifs.length = 50;
-  localStorage.setItem('rap_notifs', JSON.stringify(notifs));
+    // Note: We don't call saveUsers(users) here because non-admins don't have permission 
+    // to push to the global USUARIOS sheet. The backend already handled the row insertion.
 
-  // Clear form
-  ['signupName', 'signupUser', 'signupEmail', 'signupPhone', 'signupCargo', 'signupPass'].forEach(id => {
-    document.getElementById(id).value = '';
-  });
-  errEl.textContent = '';
+    // Added notification for admin locally (will be synced if admin refreshes)
+    addNotif(`Nuevo usuario registrado (Acceso Directo): ${name} (${cargo})`);
 
-  toggleAuth('success');
+    // Clear form
+    ['signupName', 'signupUser', 'signupEmail', 'signupPhone', 'signupCargo', 'signupPass'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+    errEl.textContent = '';
+
+    toggleAuth('success');
+  } catch (e) {
+    console.error("Signup failed:", e);
+    errEl.textContent = 'Error al registrar usuario: ' + e.message;
+  }
 }
 
 // === TOGGLE PASSWORD VISIBILITY ===
@@ -672,10 +750,12 @@ function addNotif(msg) {
   // Keep only last 50
   if (notifs.length > 50) notifs.length = 50;
   saveNotifs(notifs);
+  pushSharedData(); // Sync instantly
 }
 
 function clearNotifs() {
   saveNotifs([]);
+  pushSharedData(); // Sync instantly
   renderAdminPanel();
 }
 
@@ -823,6 +903,7 @@ function approveUserRole(id) {
   }
 
   saveUsers(users);
+  pushUsers(users); // Sync to cloud
   updateNotifBadge();
   renderAdminPanel();
   showToast(`? ${user.name} aprobado como ${cargo}`);
@@ -835,6 +916,7 @@ function denyUser(userId) {
   const name = users[idx].name;
   users.splice(idx, 1);
   saveUsers(users);
+  pushUsers(users); // Sync to cloud
   updateNotifBadge();
   renderAdminPanel();
   showToast(`? Solicitud de ${name} rechazada`);
@@ -900,68 +982,97 @@ function closeAddEventModal() {
   document.getElementById('addEventModal').classList.remove('show');
 }
 
+// Picker virtual scrolling state
 const PICKER_ROW_HEIGHT = 80;
 let pvViewport, pvInner;
-let currentFilteredPicker = [];
+let currentFilteredPickerGroups = [];
+window._pickerGroups = []; // All selectable groups
 
 function renderEquipPicker() {
-  const groups = {};
-  const currentQty = window._equipQty || {};
+  const currentSelections = window._equipQty || {}; // { groupIdx: qty }
+  const groupsTemp = {};
 
-  // High performance grouping
+  // 1. Create Groups from the global equipos array
   equipos.forEach((eq, idx) => {
-    const isSelected = currentQty[idx] > 0;
-    if (eq.estado === 'Disponible' || isSelected) {
-      if (!groups[eq.cat]) groups[eq.cat] = [];
-      groups[eq.cat].push({ ...eq, idx });
+    const groupKey = `${eq.cat}|${eq.nombre}|${eq.descripcion}|${eq.marca}`;
+    if (!groupsTemp[groupKey]) {
+      groupsTemp[groupKey] = {
+        cat: eq.cat,
+        nombre: eq.nombre,
+        descripcion: eq.descripcion,
+        marca: eq.marca,
+        availableIndices: [],
+        totalAvailable: 0
+      };
+    }
+    if (eq.estado === 'Disponible') {
+      groupsTemp[groupKey].availableIndices.push(idx);
+      groupsTemp[groupKey].totalAvailable++;
     }
   });
 
-  const deptTabs = document.getElementById('deptTabs');
-  const cats = Object.keys(groups);
-  window._equipDepts = cats;
-  window._equipQty = currentQty;
+  window._pickerGroups = Object.values(groupsTemp).sort((a, b) => a.nombre.localeCompare(b.nombre));
+  window._equipQty = currentSelections; // Persist across renders if possible
 
-  deptTabs.innerHTML = `<button class="dept-tab active" onclick="setEquipDept('all')">Todos <span class="dept-count">(${equipos.length})</span></button>` +
-    cats.map(cat => `<button class="dept-tab" onclick="setEquipDept('${cat}')">${cat} <span class="dept-count">(${groups[cat].length})</span></button>`).join('');
+  // 2. Build Category Tabs (Departments)
+  const deptTabs = document.getElementById('deptTabs');
+  const depts = [...new Set(window._pickerGroups.map(g => g.cat))].sort();
+
+  if (deptTabs) {
+    deptTabs.innerHTML = `<button class="dept-tab active" onclick="setEquipDept('all')">Todos <span class="dept-count">(${window._pickerGroups.length})</span></button>` +
+      depts.map(cat => {
+        const count = window._pickerGroups.filter(g => g.cat === cat).length;
+        return `<button class="dept-tab" onclick="setEquipDept('${cat}')">${cat} <span class="dept-count">(${count})</span></button>`;
+      }).join('');
+  }
 
   window._currentDept = 'all';
 
-  // Init virtual scroller for picker if not done
+  // 3. Init virtual scroller
   if (!pvViewport) {
     pvViewport = document.getElementById('equipPicker');
-    pvViewport.innerHTML = '<div class="equip-pick-inner" id="equipPickInner"></div>';
-    pvInner = document.getElementById('equipPickInner');
-    pvViewport.addEventListener('scroll', renderPickerVirtualItems);
+    if (pvViewport) {
+      pvViewport.innerHTML = '<div class="equip-pick-inner" id="equipPickInner"></div>';
+      pvInner = document.getElementById('equipPickInner');
+      pvViewport.addEventListener('scroll', renderPickerVirtualItems);
+    }
   }
 
   renderEquipList();
 }
 
 function renderEquipList() {
-  const search = (document.getElementById('equipSearch').value || '').toLowerCase();
-  const dept = window._currentDept;
+  const searchInput = document.getElementById('equipSearch');
+  const search = (searchInput ? searchInput.value : '').toLowerCase();
+  const dept = window._currentDept || 'all';
   const currentQty = window._equipQty || {};
 
-  // Filter logic (High speed)
-  currentFilteredPicker = equipos.map((eq, idx) => ({ ...eq, idx }))
-    .filter(eq => {
-      // Basic state filter
-      if (eq.estado !== 'Disponible' && !(currentQty[eq.idx] > 0)) return false;
+  // Filter groups
+  currentFilteredPickerGroups = window._pickerGroups.map((g, idx) => ({ ...g, groupIdx: idx }))
+    .filter(g => {
+      // Must have availability OR be already selected
+      if (g.totalAvailable === 0 && !(currentQty[g.groupIdx] > 0)) return false;
       // Dept filter
-      if (dept !== 'all' && eq.cat !== dept) return false;
+      if (dept !== 'all' && g.cat !== dept) return false;
       // Search filter
-      if (search && !eq.nombre.toLowerCase().includes(search) && !eq.id.toLowerCase().includes(search) && !eq.marca.toLowerCase().includes(search)) return false;
+      if (search) {
+        const matches = g.nombre.toLowerCase().includes(search) ||
+          g.descripcion.toLowerCase().includes(search) ||
+          g.marca.toLowerCase().includes(search);
+        if (!matches) return false;
+      }
       return true;
     });
 
-  if (currentFilteredPicker.length === 0) {
+  if (!pvInner) return;
+
+  if (currentFilteredPickerGroups.length === 0) {
     pvInner.style.height = '0px';
-    pvInner.innerHTML = '<div class="equip-pick-empty" style="padding:40px;text-align:center;color:var(--text2)">No se encontraron equipos</div>';
+    pvInner.innerHTML = '<div class="equip-pick-empty" style="padding:40px;text-align:center;color:var(--text2)">No se encontraron equipos disponibles</div>';
     return;
   }
 
-  pvInner.style.height = (currentFilteredPicker.length * PICKER_ROW_HEIGHT) + 'px';
+  pvInner.style.height = (currentFilteredPickerGroups.length * PICKER_ROW_HEIGHT) + 'px';
   renderPickerVirtualItems();
 }
 
@@ -971,7 +1082,7 @@ function renderPickerVirtualItems() {
   const viewportHeight = pvViewport.clientHeight;
 
   const startIdx = Math.max(0, Math.floor(scrollTop / PICKER_ROW_HEIGHT) - OVERSCAN);
-  const endIdx = Math.min(currentFilteredPicker.length, Math.ceil((scrollTop + viewportHeight) / PICKER_ROW_HEIGHT) + OVERSCAN);
+  const endIdx = Math.min(currentFilteredPickerGroups.length, Math.ceil((scrollTop + viewportHeight) / PICKER_ROW_HEIGHT) + OVERSCAN);
 
   const iconColors = { 'Audio': 'audio', 'Iluminación': 'ilu', 'Video': 'video', 'Rigging': 'rig', 'Bodega': 'bod' };
   const iconSvgs = {
@@ -983,24 +1094,25 @@ function renderPickerVirtualItems() {
   };
 
   let html = '';
+  const currentQty = window._equipQty || {};
+
   for (let i = startIdx; i < endIdx; i++) {
-    const eq = currentFilteredPicker[i];
-    const qty = window._equipQty[eq.idx] || 0;
-    const stCls = eq.estado === 'Disponible' ? 'disp' : eq.estado === 'Mantenimiento' ? 'mant' : 'evento';
-    const iconCls = iconColors[eq.cat] || 'audio';
+    const g = currentFilteredPickerGroups[i];
+    const qty = currentQty[g.groupIdx] || 0;
+    const iconCls = iconColors[g.cat] || 'audio';
     const top = i * PICKER_ROW_HEIGHT;
 
-    html += `<div class="equip-pick-item" style="top:${top}px" data-idx="${eq.idx}">
-      <div class="ep-icon ${iconCls}">${iconSvgs[eq.cat] || iconSvgs['Audio']}</div>
+    html += `<div class="equip-pick-item" style="top:${top}px" data-gidx="${g.groupIdx}">
+      <div class="ep-icon ${iconCls}">${iconSvgs[g.cat] || iconSvgs['Audio']}</div>
       <div class="ep-info">
-        <span class="ep-name">${eq.nombre}</span>
-        <span class="ep-meta">${eq.id} · ${eq.marca}</span>
+        <span class="ep-name">${sanitize(g.nombre)} <span style="font-weight:400; opacity:0.7">${sanitize(g.descripcion || '')}</span></span>
+        <span class="ep-meta">${sanitize(g.marca)}</span>
       </div>
-      <span class="ep-status ${stCls}">${eq.estado}</span>
+      <span class="ep-status disp" style="min-width: 90px; text-align: center;">${g.totalAvailable} Disp.</span>
       <div class="qty-control">
-        <button class="qty-btn" onclick="changeQty(${eq.idx},-1)" ${qty <= 0 ? 'disabled' : ''}>-</button>
-        <span class="qty-val qv-${eq.idx} ${qty > 0 ? 'has-qty' : ''}">${qty}</span>
-        <button class="qty-btn" onclick="changeQty(${eq.idx},1)">+</button>
+        <button class="qty-btn" onclick="changeGroupQty(${g.groupIdx},-1)" ${qty <= 0 ? 'disabled' : ''}>-</button>
+        <span class="qty-val qvg-${g.groupIdx} ${qty > 0 ? 'has-qty' : ''}">${qty}</span>
+        <button class="qty-btn" onclick="changeGroupQty(${g.groupIdx},1)" ${qty >= g.totalAvailable ? 'disabled' : ''}>+</button>
       </div>
     </div>`;
   }
@@ -1018,40 +1130,40 @@ function filterEquipPicker() {
   renderEquipList();
 }
 
-function changeQty(idx, delta) {
+function changeGroupQty(gIdx, delta) {
+  const g = window._pickerGroups[gIdx];
+  if (!g) return;
   if (!window._equipQty) window._equipQty = {};
-  const current = window._equipQty[idx] || 0;
-  const newVal = Math.max(0, current + delta);
-  window._equipQty[idx] = newVal;
 
-  // Fast DOM update for visible item
-  const el = document.querySelector(`.qv-${idx}`);
+  const current = window._equipQty[gIdx] || 0;
+  const newVal = Math.max(0, Math.min(g.totalAvailable, current + delta));
+  window._equipQty[gIdx] = newVal;
+
+  const el = document.querySelector(`.qvg-${gIdx}`);
   if (el) {
     el.textContent = newVal;
     el.classList.toggle('has-qty', newVal > 0);
-    // Update the minus button state
-    const btn = el.previousElementSibling;
-    if (btn) btn.disabled = (newVal <= 0);
-  } else {
-    // If not visible, we still need to reflect the total state change later or re-render
-    // But since we use virtual scrolling, we'll just let the next scroll handle it
+    const minusBtn = el.previousElementSibling;
+    const plusBtn = el.nextElementSibling;
+    if (minusBtn) minusBtn.disabled = (newVal <= 0);
+    if (plusBtn) plusBtn.disabled = (newVal >= g.totalAvailable);
   }
-
   updateEquipSummary();
 }
 
 function updateEquipSummary() {
   const summary = document.getElementById('equipSelectedSummary');
+  if (!summary) return;
   const selected = Object.entries(window._equipQty || {}).filter(([, q]) => q > 0);
   if (selected.length === 0) {
     summary.innerHTML = '';
     return;
   }
   const totalItems = selected.reduce((sum, [, q]) => sum + q, 0);
-  summary.innerHTML = `<span style="color:var(--text2);margin-right:4px">${totalItems} equipo(s):</span>` +
-    selected.map(([idx, qty]) => {
-      const eq = equipos[parseInt(idx)];
-      return `<span class="sel-chip"><span class="sel-qty">${qty}</span> ${eq.nombre}</span>`;
+  summary.innerHTML = `<span style="color:var(--text2);margin-right:4px">${totalItems} equipo(s) seleccionados:</span>` +
+    selected.map(([gIdx, qty]) => {
+      const g = window._pickerGroups[parseInt(gIdx)];
+      return `<span class="sel-chip"><span class="sel-qty">${qty}</span> ${sanitize(g.nombre)} <small style="opacity:0.8; margin-left:4px">${sanitize(g.descripcion)}</small></span>`;
     }).join('');
 }
 
@@ -1067,47 +1179,22 @@ function createEvent() {
     return;
   }
 
-  // Get selected equipment with quantities
-  const selectedEquip = [];
-  Object.entries(window._equipQty || {}).forEach(([idx, qty]) => {
-    if (qty > 0) {
-      const eq = equipos[parseInt(idx)];
-      if (eq) {
-        for (let i = 0; i < qty; i++) {
-          selectedEquip.push({ name: eq.nombre, id: eq.id, cat: eq.cat, done: false });
-        }
-      }
-    }
-  });
-
-  // Format dates
-  const startDate = new Date(start);
-  const endDate = new Date(end);
-  const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-  const dateStr = `${startDate.getDate()} ${months[startDate.getMonth()]} — ${endDate.getDate()} ${months[endDate.getMonth()]} ${endDate.getFullYear()}`;
-
-  // Build categories from selected equipment (GROUPED BY MODEL)
+  // Build categories from selected equipment groups
   const categories = {};
-  Object.entries(window._equipQty || {}).forEach(([idx, qty]) => {
+  Object.entries(window._equipQty || {}).forEach(([gIdx, qty]) => {
     if (qty > 0) {
-      const eq = equipos[parseInt(idx)];
-      if (eq) {
-        const cat = eq.cat || 'Otros';
+      const g = window._pickerGroups[parseInt(gIdx)];
+      if (g) {
+        const cat = g.cat || 'Otros';
         if (!categories[cat]) categories[cat] = [];
-
-        // Find if this model (descripcion) already exists in this category
-        let group = categories[cat].find(g => g.model === eq.descripcion);
-        if (group) {
-          group.qty += qty;
-        } else {
-          categories[cat].push({
-            model: eq.descripcion,
-            name: eq.nombre,
-            qty: qty,
-            doneCount: 0,
-            scannedIds: []
-          });
-        }
+        categories[cat].push({
+          model: g.descripcion,
+          name: g.nombre,
+          marca: g.marca,
+          qty: qty,
+          doneCount: 0,
+          scannedIds: []
+        });
       }
     }
   });
@@ -1228,7 +1315,7 @@ function renderEventCards() {
 
     const card = `<div class="event-card" onclick="openEvent('${key}')">
       <div class="ev-top">
-        <span class="ev-name">${ev.title}</span>
+        <span class="ev-name">${sanitize(ev.title)}</span>
         <div class="ev-top-actions">
           ${editBtn}
           ${deleteBtn}
@@ -1336,12 +1423,14 @@ function editEvent(key) {
   // Pre-fill quantities from event categories
   window._equipQty = {};
   if (ev.categories) {
-    Object.values(ev.categories).forEach(items => {
-      items.forEach(item => {
-        // Find matching equipo index
-        const idx = equipos.findIndex(e => e.id === item.id);
-        if (idx >= 0) {
-          window._equipQty[idx] = (window._equipQty[idx] || 0) + 1;
+    // We need to map event category models back to our picker groups
+    Object.entries(ev.categories).forEach(([cat, groups]) => {
+      groups.forEach(g => {
+        const pickerGIdx = window._pickerGroups.findIndex(pg =>
+          pg.cat === cat && pg.descripcion === g.model && pg.marca === g.marca
+        );
+        if (pickerGIdx >= 0) {
+          window._equipQty[pickerGIdx] = (window._equipQty[pickerGIdx] || 0) + g.qty;
         }
       });
     });
@@ -1391,6 +1480,7 @@ function saveEditedEvent(key) {
           categories[cat].push({
             model: eq.descripcion,
             name: eq.nombre,
+            marca: eq.marca,
             qty: qty,
             doneCount: 0,
             scannedIds: []
@@ -1526,9 +1616,16 @@ async function saveMovimientos(data) {
 }
 
 async function pushSharedData() {
-  const p = { action: 'push', events: getStoredEvents(), movements: getStoredMovimientos() };
+  const p = {
+    action: 'push',
+    token: API_TOKEN,
+    events: getStoredEvents(),
+    movements: getStoredMovimientos(),
+    archivedEvents: JSON.parse(localStorage.getItem('rap_archived_v1') || '{}'),
+    notifications: getNotifs()
+  };
   try {
-    await fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(p) });
+    await fetch(API_URL, { method: 'POST', body: JSON.stringify(p) });
   } catch (e) {
     console.warn("Push error:", e);
   }
@@ -1543,13 +1640,15 @@ async function pullSharedData() {
       if (res && res.success && res.data) {
         if (res.data.events) { checkData = res.data.events; localStorage.setItem('rap_events_v1', JSON.stringify(checkData)); }
         if (res.data.movements) { movimientos = res.data.movements; localStorage.setItem('rap_movimientos_v1', JSON.stringify(movements)); }
+        if (res.data.archivedEvents) { archivedEvents = res.data.archivedEvents; localStorage.setItem('rap_archived_v1', JSON.stringify(archivedEvents)); }
+        if (res.data.notifications) { saveNotifs(res.data.notifications); }
         renderScanEventOptions();
         resolve(true);
       }
       resolve(false);
     };
     const sc = document.createElement('script');
-    sc.src = `${API_URL}?action=pull&callback=${cb}`;
+    sc.src = `${API_URL}?action=pull&token=${API_TOKEN}&callback=${cb}`;
     document.body.appendChild(sc);
   });
 }
@@ -2274,10 +2373,10 @@ document.getElementById('catChips').addEventListener('click', e => {
 // === DYNAMIC EVENT DETAIL ===
 function renderChecklist(catName, items, doneLabel, pendLabel, responsible) {
   let html = `<div class="cat-header-wrap" style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid var(--border); margin-top: 24px; padding-bottom: 8px; margin-bottom: 12px;">
-                <h2 class="section-title" style="margin:0">${catName}</h2>
+                <h2 class="section-title" style="margin:0">${sanitize(catName)}</h2>
                 <div style="text-align: right;">
                   <span style="font-size: 11px; color: var(--text2); display: block; text-transform: uppercase; letter-spacing: 0.5px;">Encargado de Área</span>
-                  <span style="font-size: 13px; font-weight: 600; color: var(--gold);">${responsible || 'Por asignar'}</span>
+                  <span style="font-size: 13px; font-weight: 600; color: var(--gold);">${sanitize(responsible) || 'Por asignar'}</span>
                 </div>
               </div>`;
 
@@ -2307,8 +2406,8 @@ function renderChecklist(catName, items, doneLabel, pendLabel, responsible) {
     return `<div class="check-item">
       <div class="check-icon ${cls}">${icon}</div>
       <div class="check-info">
-        <div class="check-name" style="font-weight:700">${group.model}</div>
-        <div class="check-id">${group.name} • <span style="color:var(--gold)">${group.doneCount}/${group.qty}</span> ${label}</div>
+        <div class="check-name" style="font-weight:700">${sanitize(group.model)} <span style="font-weight:400; opacity:0.7">(${sanitize(group.marca)})</span></div>
+        <div class="check-id">${sanitize(group.name)} • <span style="color:var(--gold)">${group.doneCount}/${group.qty}</span> ${label}</div>
         ${scannedList}
       </div>
     </div>`;
@@ -2587,57 +2686,72 @@ function switchHistTab(tab) {
   document.querySelector(`.ev-tab[data-htab="${tab}"]`).classList.add('active');
   document.getElementById('histContentFinalizados').style.display = tab === 'finalizados' ? 'block' : 'none';
   document.getElementById('histContentActividad').style.display = tab === 'actividad' ? 'block' : 'none';
+
+  if (tab === 'finalizados') renderArchivedEvents();
+  else renderDetailedActivity();
+}
+
+function renderArchivedEvents() {
+  const movList = document.getElementById('movList');
+  if (!movList) return;
+
+  const pastEvents = Object.entries(archivedEvents)
+    .sort((a, b) => new Date(b[1].archivedAt || b[1].date) - new Date(a[1].archivedAt || a[1].date));
+
+  if (pastEvents.length === 0) {
+    movList.innerHTML = '<p style="text-align:center; color:var(--text2); font-style:italic; padding: 24px;">No hay eventos archivados en el historial.</p>';
+  } else {
+    movList.innerHTML = pastEvents.map(([key, ev]) => {
+      return `<div class="mov-item" style="display: flex; flex-direction: column; gap: 8px; align-items: stretch;" onclick="openArchivedEvent('${key}')">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div style="font-weight: 600; font-size: 14px;">${sanitize(ev.title)}</div>
+          <div class="ev-badge green-b">Archivado</div>
+        </div>
+        <div style="font-size: 13px; color: var(--text2);">
+          <span style="color: var(--gold);">${sanitize(ev.client)}</span> • Concluido: ${new Date(ev.archivedAt || ev.date).toLocaleDateString('es-MX')}
+        </div>
+      </div>`;
+    }).join('');
+  }
+}
+
+function renderDetailedActivity() {
+  const actList = document.getElementById('actividadList');
+  if (!actList) return;
+
+  if (!movimientos || movimientos.length === 0) {
+    actList.innerHTML = '<p style="text-align:center; color:var(--text2); font-style:italic; padding: 24px;">No hay registros de actividad recientes.</p>';
+  } else {
+    actList.innerHTML = movimientos.map(m => {
+      const isSalida = m.tipo === 'Salida' || m.tipo === 'Evento Eliminado';
+      const stCls = isSalida ? 'evento' : 'disp';
+      const color = isSalida ? 'var(--orange)' : 'var(--green)';
+      return `
+        <div class="mov-item">
+          <div class="mov-info">
+            <span class="mov-equip">${sanitize(m.equip)} <span style="font-size:12px;color:var(--text2);font-weight:normal;">(${sanitize(m.id)})</span></span>
+            <span class="mov-event">${sanitize(m.evento)} • Resp: ${sanitize(m.resp) || 'Sistema'}</span>
+            <span class="mov-date">${m.time}</span>
+          </div>
+          <span class="ep-status ${stCls}" style="color:${color}; border-color:${color};">${m.tipo}</span>
+        </div>`;
+    }).join('');
+  }
 }
 
 function renderMovimientos() {
-  const movList = document.getElementById('movList');
-  const actList = document.getElementById('actividadList');
-
-  // 1. Renderizar Eventos Finalizados
-  if (movList) {
-    const pastEvents = Object.entries(checkData)
-      .filter(([key, ev]) => ev.fin === true)
-      .sort((a, b) => new Date(b[1].end) - new Date(a[1].end));
-
-    if (pastEvents.length === 0) {
-      movList.innerHTML = '<p style="text-align:center; color:var(--text2); font-style:italic; padding: 24px;">No hay eventos finalizados en el historial.</p>';
-    } else {
-      movList.innerHTML = pastEvents.map(([key, ev]) => {
-        return `<div class="mov-item" style="display: flex; flex-direction: column; gap: 8px; align-items: stretch;" onclick="openEvent('${key}')">
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <div style="font-weight: 600; font-size: 14px;">${ev.title}</div>
-            <div class="ev-badge green-b">Finalizado</div>
-          </div>
-          <div style="font-size: 13px; color: var(--text2);">
-            <span style="color: var(--gold);">${ev.client}</span> • Fin: ${new Date(ev.date).toLocaleDateString('es-MX')}
-          </div>
-        </div>`;
-      }).join('');
-    }
-  }
-
-  // 2. Renderizar Actividad Detallada
-  if (actList) {
-    if (!movimientos || movimientos.length === 0) {
-      actList.innerHTML = '<p style="text-align:center; color:var(--text2); font-style:italic; padding: 24px;">No hay registros de actividad recientes.</p>';
-    } else {
-      actList.innerHTML = movimientos.map(m => {
-        const isSalida = m.tipo === 'Salida' || m.tipo === 'Evento Eliminado';
-        const stCls = isSalida ? 'evento' : 'disp';
-        const color = isSalida ? 'var(--orange)' : 'var(--green)';
-        return `
-          <div class="mov-item">
-            <div class="mov-info">
-              <span class="mov-equip">${m.equip} <span style="font-size:12px;color:var(--text2);font-weight:normal;">(${m.id})</span></span>
-              <span class="mov-event">${m.evento} • Resp: ${m.resp || 'Sistema'}</span>
-              <span class="mov-date">${m.time}</span>
-            </div>
-            <span class="ep-status ${stCls}" style="color:${color}; border-color:${color};">${m.tipo}</span>
-          </div>`;
-      }).join('');
-    }
-  }
+  renderArchivedEvents();
+  renderDetailedActivity();
 }
+
+function openArchivedEvent(key) {
+  const ev = archivedEvents[key];
+  if (!ev) return;
+  // For archived events, we just show a toast or a simple summary for now, 
+  // since they are basically data snapshots.
+  showToast(`Evento: ${ev.title} - Todo el equipo fue devuelto correctamente.`);
+}
+
 renderMovimientos();
 
 // === SCANNER ===
@@ -3333,14 +3447,25 @@ function handleGlobalSearch(query) {
   }).join('');
 }
 
-function finishAndArchiveEvent(key) {
-  if (!confirm('¿Estás seguro de que deseas archivar y eliminar este evento permanentemente?')) return;
+async function finishAndArchiveEvent(key) {
+  if (!confirm('¿Estás seguro de que deseas archivar este evento? Se moverá permanentemente al historial.')) return;
 
+  const ev = checkData[key];
+  if (!ev) return;
+
+  // Clone and augment with archival info
+  const archived = { ...ev, status: 'completed', archivedAt: new Date().toISOString() };
+  archivedEvents[key] = archived;
+
+  // Persistent storage
+  localStorage.setItem('rap_archived_v1', JSON.stringify(archivedEvents));
   delete checkData[key];
-  saveEvents(checkData);
 
-  showToast('? Evento archivado y eliminado.');
+  await saveEvents(checkData); // This will also trigger pushSharedData
+
+  showToast('✓ Evento archivado exitosamente.');
   showPage('pg-dashboard');
   renderEventCards();
+  if (typeof renderArchivedEvents === 'function') renderArchivedEvents();
 }
 

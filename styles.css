@@ -278,10 +278,13 @@ h6,
 .auth-screen {
     position: fixed;
     inset: 0;
-    z-index: 200;
+    z-index: 2000;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
     transition: opacity .5s, transform .5s
 }
 
@@ -310,8 +313,9 @@ h6,
     z-index: 1;
     width: 100%;
     max-width: 420px;
-    padding: 40px 32px;
-    text-align: center
+    padding: 60px 24px;
+    text-align: center;
+    margin: auto 0;
 }
 
 .auth-logo {

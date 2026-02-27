@@ -1,0 +1,20 @@
+{
+    "action": "pushUsers",
+    "token": "RAP_SECURE_TOKEN_2026_V1_ISAAC",
+    "adminRole": "admin",
+    "users": [
+        {
+            "id": "admin-001",
+            "name": "Isaac Contreras",
+            "username": "ISAAC",
+            "email": "isaac@rap.mx",
+            "phone": "",
+            "cargo": "Administrador",
+            "password": "CONTRERAS9",
+            "role": "admin",
+            "status": "active",
+            "permissions": ["inventario", "escaneo", "eventos", "eventos_edit", "movimientos", "estadisticas"],
+            "createdAt": "2026-02-27T14:00:00Z"
+        }
+    ]
+}
