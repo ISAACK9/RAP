@@ -50,6 +50,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // AUTOMATIC SYNC ON ENTRY
     try {
+      await pullSharedData(); // Get global events and movements
       await syncInventoryToIndexedDB();
     } catch (e) {
       console.error("Auto-sync failed on entry:", e);
@@ -1504,9 +1505,10 @@ function getStoredEvents() {
   }
 }
 
-function saveEvents(data) {
+async function saveEvents(data) {
   localStorage.setItem('rap_events_v1', JSON.stringify(data));
-  renderScanEventOptions(); // Auto-refresh dropdown when events change
+  renderScanEventOptions();
+  await pushSharedData(); // Sync to global
 }
 
 function getStoredMovimientos() {
