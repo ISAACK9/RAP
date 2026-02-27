@@ -1,0 +1,23 @@
+Contexto: Actúa como un experto en desarrollo No-Code (AppSheet). Necesito crear una aplicación de gestión de inventarios para una empresa de renta de equipo de escenarios (audio, iluminación, video, etc.).
+
+Estructura de Datos Requerida:
+
+Tabla Inventario: Columnas para ID_Equipo (QR), Nombre, Categoría (Audio, Iluminación, Estructuras, etc.), Estado Actual (Disponible, En Evento, Mantenimiento) y Ubicación.
+
+Tabla Eventos: Columnas para ID_Evento, Nombre del Cliente, Fecha Inicio, Fecha Fin y Lista de equipos asignados.
+
+Tabla Movimientos (Log): Registro de cada escaneo. Columnas para ID_Movimiento, ID_Equipo, ID_Evento, Tipo (Entrada/Salida), Fecha/Hora y Responsable.
+
+Funcionalidades Clave:
+
+Lectura QR: El ID_Equipo debe ser escaneable mediante QR para registrar entradas y salidas rápidas.
+
+Lógica de Disponibilidad: Si un equipo tiene el estado "En Evento", la app debe impedir una nueva "Salida" y mostrar una alerta de "Equipo no disponible en bodega".
+
+Validación por Evento: Al seleccionar un evento específico, la app debe mostrar la lista de equipos "pedidos" para ese show. El usuario debe poder escanear las salidas y la app debe marcar qué falta por cargar y qué ya salió.
+
+Segmentación por Departamentos: Crear vistas filtradas para que el staff de Audio solo vea su equipo, el de Iluminación el suyo, etc.
+
+Registro Visual: Capacidad de tomar una foto al momento del escaneo (Entrada/Salida) para documentar el estado físico del equipo.
+
+Objetivo: Maximizar la fluidez en la carga y descarga de camiones, evitando errores humanos y pérdida de equipo.

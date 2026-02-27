@@ -1,0 +1,11 @@
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Project specific
+node_modules/
+.env
+*.log
+
+# Git files
+.git/

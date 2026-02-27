@@ -1,0 +1,1190 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RAP Inventario — Gestión de Equipo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=14">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#D4AF37">
+  <link rel="apple-touch-icon" href="pwa_icon_512_1771875882557.png">
+</head>
+
+<body>
+  <div class="app">
+    <!-- SIDEBAR (Desktop) -->
+    <nav class="sidebar">
+      <div class="sidebar-logo">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="#d4a843">
+          <path
+            d="M20 2H4c-1 0-2 1-2 2v3.01c0 .72.43 1.34 1 1.69V20c0 1.1 1.1 2 2 2h14c.9 0 2-.9 2-2V8.7c.57-.35 1-.97 1-1.69V4c0-1-1-2-2-2zm-5 12H9v-2h6v2zm5-7H4V4h16v3z" />
+        </svg>
+        <span>RAP</span>
+      </div>
+      <div class="sidebar-nav">
+        <button class="sidebar-btn active" data-page="pg-dashboard">
+          <svg viewBox="0 0 24 24">
+            <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z" />
+          </svg>
+          <span>Inicio</span>
+        </button>
+        <button class="sidebar-btn" data-page="pg-inventario">
+          <svg viewBox="0 0 24 24">
+            <path
+              d="M20 2H4c-1 0-2 1-2 2v3.01c0 .72.43 1.34 1 1.69V20c0 1.1 1.1 2 2 2h14c.9 0 2-.9 2-2V8.7c.57-.35 1-.97 1-1.69V4c0-1-1-2-2-2zm-5 12H9v-2h6v2zm5-7H4V4h16v3z" />
+          </svg>
+          <span>Inventario</span>
+        </button>
+        <button class="sidebar-btn" data-page="pg-scan">
+          <svg viewBox="0 0 24 24">
+            <path
+              d="M9.5 6.5v3h-3v-3h3M11 5H5v6h6V5zm-1.5 9.5v3h-3v-3h3M11 13H5v6h6v-6zm6.5-6.5v3h-3v-3h3M19 5h-6v6h6V5zm-6 8h1.5v1.5H13V13zm1.5 1.5H16V16h-1.5v-1.5zM16 13h1.5v1.5H16V13zm-3 3h1.5v1.5H13V16zm1.5 1.5H16V19h-1.5v-1.5zM16 16h1.5v1.5H16V16zm1.5-1.5H19V16h-1.5v-1.5zm0 3H19V19h-1.5v-1.5z" />
+          </svg>
+          <span>Escaneo</span>
+        </button>
+        <button class="sidebar-btn" data-page="pg-eventos">
+          <svg viewBox="0 0 24 24">
+            <path
+              d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z" />
+          </svg>
+          <span>Eventos</span>
+        </button>
+        <button class="sidebar-btn" data-page="pg-movimientos">
+          <svg viewBox="0 0 24 24">
+            <path d="M6.99 11L3 15l3.99 4v-3H14v-2H6.99v-3zM21 9l-3.99-4v3H10v2h7.01v3L21 9z" />
+          </svg>
+          <span>Historial</span>
+        </button>
+      </div>
+      <div class="sidebar-bottom">
+        <div class="sidebar-user" onclick="showProfileModal()">
+          <div class="sidebar-avatar">CA</div>
+          <span>Carlos A.</span>
+        </div>
+      </div>
+    </nav>
+    <div class="app-main">
+      <!-- SYNC OVERLAY (For Initial IndexedDB DB Load) -->
+      <div id="syncOverlay"
+        style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(22, 22, 30, 0.95); z-index: 9999; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(10px);">
+        <div
+          style="background: var(--card); padding: 40px; border-radius: 24px; border: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; box-shadow: 0 20px 40px rgba(0,0,0,0.5); max-width: 90%; width: 360px;">
+          <!-- Custom Spinner -->
+          <div style="position: relative; width: 64px; height: 64px; margin-bottom: 24px;">
+            <svg style="animation: spin 2s linear infinite; width: 100%; height: 100%; color: var(--blue);"
+              viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.1)" stroke-width="3"></circle>
+              <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" stroke-width="3"></path>
+            </svg>
+            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: var(--blue);">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="M19.35 10.04A7.49 7.49 0 0012 4C9.11 4 6.6 5.64 5.35 8.04A5.994 5.994 0 000 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z">
+                </path>
+              </svg>
+            </div>
+          </div>
+          <h2 style="font-size: 18px; font-weight: 600; text-align: center; margin: 0 0 8px 0; color: #fff;">
+            Sincronizando Base de Datos</h2>
+          <p style="font-size: 13px; color: var(--text2); text-align: center; margin: 0 0 24px 0;">Descargando catálogo
+            de equipos...</p>
+
+          <div
+            style="width: 100%; background: var(--border); height: 6px; border-radius: 3px; overflow: hidden; position: relative;">
+            <div id="syncProgressBar"
+              style="position: absolute; left: 0; top: 0; bottom: 0; width: 0%; background: var(--blue); border-radius: 3px; transition: width 0.3s ease;">
+            </div>
+          </div>
+          <div style="display: flex; justify-content: space-between; width: 100%; margin-top: 8px;">
+            <span style="font-size: 11px; color: var(--text2); font-family: monospace;" id="syncStatusText">0 /
+              24,000+</span>
+            <span style="font-size: 11px; color: var(--blue); font-weight: 600;" id="syncPercentageText">0%</span>
+          </div>
+        </div>
+      </div>
+      <style>
+        @keyframes spin {
+          100% {
+            transform: rotate(360deg);
+          }
+        }
+
+        select option {
+          background-color: #1c1c24;
+          color: #ffffff;
+        }
+      </style>
+
+      <!-- LOGIN / SIGNUP SCREEN -->
+      <div class="auth-screen" id="authScreen">
+        <div class="auth-bg"></div>
+        <div class="auth-content">
+          <div class="auth-logo">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="#d4a843">
+              <path
+                d="M20 2H4c-1 0-2 1-2 2v3.01c0 .72.43 1.34 1 1.69V20c0 1.1 1.1 2 2 2h14c.9 0 2-.9 2-2V8.7c.57-.35 1-.97 1-1.69V4c0-1-1-2-2-2zm-5 12H9v-2h6v2zm5-7H4V4h16v3z" />
+            </svg>
+          </div>
+          <h1 class="auth-title">RAP Inventario</h1>
+          <p class="auth-subtitle">Gestión de Equipo Profesional</p>
+
+          <!-- LOGIN FORM -->
+          <div class="auth-form" id="loginForm">
+            <h2 class="auth-form-title">INICIAR SESIÓN</h2>
+            <div class="auth-field">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+              </svg>
+              <input type="text" placeholder="Usuario" id="loginUser" autocomplete="off">
+            </div>
+            <div class="auth-field" style="position: relative;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1s3.1 1.39 3.1 3.1v2z" />
+              </svg>
+              <input type="password" placeholder="Contraseña" id="loginPass" style="padding-right: 40px;">
+              <button type="button" class="pwd-toggle" onclick="togglePassword('loginPass', this)">
+                <svg viewBox="0 0 24 24" fill="currentColor" class="pwd-eye-show">
+                  <path
+                    d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z" />
+                </svg>
+                <svg viewBox="0 0 24 24" fill="currentColor" class="pwd-eye-hide" style="display:none">
+                  <path
+                    d="M11.83 9L15 12.16V12a3 3 0 00-3-3h-.17zm-4.3.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.31-.78l3.15 3.15.02-.16c0-1.66-1.34-3-3-3l-.17.01zm-9.02-3.8l1.81 1.81.99.99A11.968 11.968 0 001 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.43.43 1.48 1.48 1.25-1.25-17.71-17.71L2.82 5.22zM12 4.5c-1.55 0-3.03.3-4.38.84l2.12 2.12A4.957 4.957 0 0112 7c2.76 0 5 2.24 5 5 0 .61-.11 1.19-.3 1.73l2.25 2.25C21.27 14.5 23 12 23 12c-1.73-4.39-6-7.5-11-7.5z" />
+                </svg>
+              </button>
+            </div>
+            <div class="auth-remember">
+              <input type="checkbox" id="loginRemember">
+              <label for="loginRemember">Recordar usuario</label>
+            </div>
+            <button class="auth-btn" onclick="doLogin()">ENTRAR</button>
+            <p class="auth-switch">¿No tienes cuenta? <a onclick="toggleAuth('signup')">Regístrate</a></p>
+          </div>
+
+          <!-- SIGNUP FORM -->
+          <div class="auth-form" id="signupForm" style="display:none">
+            <h2 class="auth-form-title">CREAR CUENTA</h2>
+            <div class="auth-field">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+              </svg>
+              <input type="text" placeholder="Nombre completo" id="signupName" autocomplete="off">
+            </div>
+            <div class="auth-field">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="M12 6c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2m0 10c2.7 0 5.8 1.29 6 2H6c.23-.72 3.31-2 6-2m0-12C9.79 4 8 5.79 8 8s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm0 10c-2.67 0-8 1.33-8 4v2h16v-2c0-2.67-5.33-4-8-4z" />
+              </svg>
+              <input type="text" placeholder="Usuario" id="signupUser" autocomplete="off">
+            </div>
+            <div class="auth-field">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" />
+              </svg>
+              <input type="email" placeholder="Correo electrónico" id="signupEmail" autocomplete="off">
+            </div>
+            <div class="auth-field">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z" />
+              </svg>
+              <input type="tel" placeholder="Teléfono" id="signupPhone" autocomplete="off">
+            </div>
+            <div class="auth-field">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z" />
+              </svg>
+              <input type="text" placeholder="Cargo / Rol (Tu puesto real)" id="signupCargo" autocomplete="off">
+            </div>
+            <div class="auth-field" style="position: relative;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1s3.1 1.39 3.1 3.1v2z" />
+              </svg>
+              <input type="password" placeholder="Contraseña" id="signupPass" style="padding-right: 40px;">
+              <button type="button" class="pwd-toggle" onclick="togglePassword('signupPass', this)">
+                <svg viewBox="0 0 24 24" fill="currentColor" class="pwd-eye-show">
+                  <path
+                    d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z" />
+                </svg>
+                <svg viewBox="0 0 24 24" fill="currentColor" class="pwd-eye-hide" style="display:none">
+                  <path
+                    d="M11.83 9L15 12.16V12a3 3 0 00-3-3h-.17zm-4.3.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.31-.78l3.15 3.15.02-.16c0-1.66-1.34-3-3-3l-.17.01zm-9.02-3.8l1.81 1.81.99.99A11.968 11.968 0 001 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.43.43 1.48 1.48 1.25-1.25-17.71-17.71L2.82 5.22zM12 4.5c-1.55 0-3.03.3-4.38.84l2.12 2.12A4.957 4.957 0 0112 7c2.76 0 5 2.24 5 5 0 .61-.11 1.19-.3 1.73l2.25 2.25C21.27 14.5 23 12 23 12c-1.73-4.39-6-7.5-11-7.5z" />
+                </svg>
+              </button>
+            </div>
+            <div id="signupError" class="auth-error"></div>
+            <button class="auth-btn" onclick="doSignup()">REGISTRARSE</button>
+            <p class="auth-switch">¿Ya tienes cuenta? <a onclick="toggleAuth('login')">Inicia Sesión</a></p>
+          </div>
+
+          <!-- SIGNUP SUCCESS -->
+          <div class="auth-form" id="signupSuccess" style="display:none">
+            <div class="signup-success-icon">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="var(--green)">
+                <path
+                  d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+              </svg>
+            </div>
+            <h2 class="auth-form-title" style="color:var(--green);margin-top:12px">¡CUENTA CREADA!</h2>
+            <p style="color:var(--text2);font-size:13px;margin-bottom:20px;line-height:1.5">Tu solicitud fue enviada al
+              administrador.<br>Recibirás acceso cuando sea aprobada.</p>
+            <button class="auth-btn" onclick="toggleAuth('login')">IR A INICIAR SESIÓN</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- DASHBOARD -->
+      <section id="pg-dashboard" class="page active">
+        <header class="topbar">
+          <span class="back-btn global-back" onclick="goBack()" style="display:none"><svg width="20" height="20"
+              viewBox="0 0 24 24">
+              <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" fill="currentColor" />
+            </svg></span>
+          <h1>RAP Inventario</h1>
+          <div class="topbar-actions">
+            <!-- GLOBAL SEARCH ICON -->
+            <div class="topbar-search-btn" onclick="showPage('pg-search-global')" title="Buscar en todo el inventario">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
+              </svg>
+            </div>
+            <div class="notif-bell" id="notifBell" onclick="showPage('pg-admin')" style="display:none">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z" />
+              </svg>
+              <span class="notif-badge" id="notifBadge">0</span>
+            </div>
+            <div class="theme-toggle" onclick="toggleTheme()"
+              style="display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; cursor: pointer; border-radius: 10px; background: rgba(255,255,255,0.05); margin-right: 8px;">
+              <svg id="themeIcon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <!-- Moon icon (for dark mode) -->
+                <path class="moon-icon"
+                  d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z" />
+                <!-- Sun icon (will be shown in light mode) -->
+                <path class="sun-icon" style="display:none"
+                  d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58a.996.996 0 00-1.41 0 .996.996 0 000 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L5.99 4.58zm12.37 12.37a.996.996 0 00-1.41 0 .996.996 0 000 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41l-1.06-1.06zm1.06-12.37a.996.996 0 000-1.41.996.996 0 00-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06zM7.05 18.01a.996.996 0 000-1.41.996.996 0 00-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06z" />
+              </svg>
+            </div>
+            <div id="premiumHealthBadge" class="premium-badge" title="Estado de Salud del Ecosistema">
+              <span class="badge-dot"></span>
+              <span class="badge-text">Aether Prime</span>
+            </div>
+            <svg class="tb-icon" viewBox="0 0 24 24" onclick="showProfileModal()">
+              <path
+                d="M19.14 12.94a7.07 7.07 0 000-1.88l2.03-1.58a.49.49 0 00.12-.61l-1.92-3.32a.49.49 0 00-.59-.22l-2.39.96a7.04 7.04 0 00-1.62-.94l-.36-2.54a.48.48 0 00-.48-.41h-3.84a.48.48 0 00-.48.41l-.36 2.54a7.04 7.04 0 00-1.62.94l-2.39-.96a.49.49 0 00-.59.22L2.74 8.87a.48.48 0 00.12.61l2.03 1.58a7.07 7.07 0 000 1.88l-2.03 1.58a.49.49 0 00-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.04.7 1.62.94l.36 2.54c.05.24.26.41.48.41h3.84c.24 0 .44-.17.48-.41l.36-2.54a7.04 7.04 0 001.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.49.49 0 00-.12-.61l-2.03-1.58zM12 15.6A3.6 3.6 0 1115.6 12 3.6 3.6 0 0112 15.6z" />
+            </svg>
+          </div>
+        </header>
+        <div class="content">
+          <!-- AETHER-PRIME STRATEGIC INSIGHT -->
+          <div id="strategic-insight-container"></div>
+
+          <!-- RESUMEN HERO (clickable) -->
+          <div class="section-hero section-hero-link" onclick="openResumen()">
+            <div class="section-hero-icon"><svg viewBox="0 0 24 24">
+                <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z" />
+              </svg></div>
+            <div class="section-hero-text">
+              <h2>Resumen General</h2>
+              <p>Estado actual de operaciones e inventario</p>
+            </div>
+            <svg class="drive-arrow" viewBox="0 0 24 24">
+              <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6-6-6z" />
+            </svg>
+          </div>
+
+          <div class="section-hero section-hero-link" onclick="manualSync()"
+            style="margin-top: 12px; border: 1px solid var(--green); background: rgba(74, 222, 128, 0.05);">
+            <div class="section-hero-icon" style="background: rgba(74, 222, 128, 0.2);"><svg viewBox="0 0 24 24"
+                fill="var(--green)">
+                <path
+                  d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z" />
+              </svg></div>
+            <div class="section-hero-text">
+              <h2 style="color: var(--green);">Sincronizar Drive</h2>
+              <p>Actualizar datos de los 5 archivos Excel</p>
+            </div>
+          </div>
+
+          <!-- ANALYTICS AREA -->
+          <!-- ANALYTICS AREA (BUTTON) -->
+          <div class="settings-item stats-trigger" onclick="showPage('pg-stats')">
+            <div class="settings-icon"><svg viewBox="0 0 24 24">
+                <path d="M10 20h4V4h-4v16zm-6 0h4v-8H4v8zM16 9v11h4V9h-4z" />
+              </svg></div>
+            <div class="settings-info">
+              <h4>Estadísticas de Renta</h4>
+              <p>Ver porcentaje de uso por departamento</p>
+            </div>
+            <svg class="drive-arrow" viewBox="0 0 24 24">
+              <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6-6-6z" />
+            </svg>
+          </div>
+
+          <!-- DASHBOARD CHARTS -->
+          <div class="dashboard-charts" id="dashboardCharts"
+            style="display: none; flex-direction: column; gap: 16px; margin-top: 16px;">
+            <div class="chart-card" style="background: var(--card); border-radius: 16px; padding: 16px;">
+              <h3 style="margin-bottom: 12px; font-size: 14px; font-weight: 600;">Ocupación Total</h3>
+              <div style="position: relative; height: 200px; width: 100%;">
+                <canvas id="donutChart"></canvas>
+              </div>
+            </div>
+
+            <div class="chart-card" style="background: var(--card); border-radius: 16px; padding: 16px;">
+              <h3 style="margin-bottom: 12px; font-size: 14px; font-weight: 600;">Ocupación por Departamento</h3>
+              <div style="position: relative; height: 200px; width: 100%;">
+                <canvas id="barChart"></canvas>
+              </div>
+            </div>
+
+            <div class="chart-card" style="background: var(--card); border-radius: 16px; padding: 16px;">
+              <h3 style="margin-bottom: 12px; font-size: 14px; font-weight: 600;">Top 5 Artículos más Rentados</h3>
+              <div style="position: relative; height: 240px; width: 100%;">
+                <canvas id="topUsageChart"></canvas>
+              </div>
+            </div>
+          </div>
+
+
+
+
+          <!-- STATS RESUMEN -->
+
+
+
+
+          <!-- AJUSTES Y SOPORTE -->
+          <h2 class="section-title">Opciones y Soporte</h2>
+          <div class="settings-list">
+            <div class="settings-item" onclick="showProfileModal()">
+              <div class="settings-icon"><svg viewBox="0 0 24 24">
+                  <path
+                    d="M12 2C6.48 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z" />
+                </svg></div>
+              <div class="settings-info">
+                <h4>Mi Perfil</h4>
+                <p id="profileNameShort">Carlos Aguilar • Admin</p>
+              </div>
+              <svg class="drive-arrow" viewBox="0 0 24 24">
+                <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6-6-6z" />
+              </svg>
+            </div>
+
+            <div class="settings-item" onclick="openSupport()">
+              <div class="settings-icon"><svg viewBox="0 0 24 24">
+                  <path
+                    d="M11 18h2v-2h-2v2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z" />
+                </svg></div>
+              <div class="settings-info">
+                <h4>Soporte Técnico</h4>
+                <p>Ayuda y contacto directo</p>
+              </div>
+              <svg class="drive-arrow" viewBox="0 0 24 24">
+                <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6-6-6z" />
+              </svg>
+            </div>
+
+            <div class="settings-item logout" onclick="doLogout()">
+              <div class="settings-icon"><svg viewBox="0 0 24 24">
+                  <path
+                    d="M13 3h-2v10h2V3zm4.83 2.17l-1.42 1.42A6.92 6.92 0 0119 12c0 3.87-3.13 7-7 7s-7-3.13-7-7a6.92 6.92 0 012.59-5.41L6.17 5.17A8.99 8.99 0 003 12c0 4.97 4.03 9 9 9s9-4.03 9-9c0-2.74-1.23-5.18-3.17-6.83z" />
+                </svg></div>
+              <div class="settings-info">
+                <h4>Cerrar Sesión</h4>
+                <p>Finalizar jornada</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PROFILE MODAL -->
+        <div class="equip-detail-panel" id="profileModal">
+          <div class="ed-backdrop" onclick="closeProfileModal()"></div>
+          <div class="ed-sheet">
+            <div class="ed-handle" onclick="closeProfileModal()">
+              <div class="ed-handle-bar"></div>
+            </div>
+            <div class="ed-header">
+              <div class="avatar" style="width:56px; height:56px; font-size:24px; border-radius:16px" id="avatarEl">CA
+              </div>
+              <div>
+                <h2 class="ed-name" id="profileName">Carlos Aguilar</h2><span class="role-badge"
+                  id="roleBadge">Admin</span>
+              </div>
+            </div>
+            <p class="profile-email" id="profileEmail" style="margin-bottom:16px">carlos@rap.mx</p>
+            <div class="profile-perms">
+              <p class="perms-title">Permisos de Acceso</p>
+              <div class="perms-grid" id="permsGrid" style="margin-bottom:24px"></div>
+            </div>
+
+            <div class="profile-actions" style="border-top: 1px solid var(--border); padding-top: 16px;">
+              <p class="perms-title" style="margin-bottom: 12px;">Opciones de Usuario</p>
+
+              <div class="settings-item" onclick="closeProfileModal(); showPage('pg-movimientos')"
+                style="padding: 12px 16px; margin-bottom: 8px;">
+                <div class="settings-icon"><svg viewBox="0 0 24 24">
+                    <path d="M6.99 11L3 15l3.99 4v-3H14v-2H6.99v-3zM21 9l-3.99-4v3H10v2h7.01v3L21 9z" />
+                  </svg></div>
+                <div class="settings-info">
+                  <h4 style="margin:0; font-size:14px; font-weight:500;">Mi Historial</h4>
+                </div>
+                <svg class="drive-arrow" viewBox="0 0 24 24">
+                  <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6-6-6z" />
+                </svg>
+              </div>
+
+              <div class="settings-item" onclick="closeProfileModal(); openSupport()"
+                style="padding: 12px 16px; margin-bottom: 8px;">
+                <div class="settings-icon"><svg viewBox="0 0 24 24">
+                    <path
+                      d="M11 18h2v-2h-2v2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z" />
+                  </svg></div>
+                <div class="settings-info">
+                  <h4 style="margin:0; font-size:14px; font-weight:500;">Soporte Técnico</h4>
+                </div>
+              </div>
+
+              <div class="settings-item logout" onclick="closeProfileModal(); doLogout()" style="padding: 12px 16px;">
+                <div class="settings-icon"><svg viewBox="0 0 24 24">
+                    <path
+                      d="M13 3h-2v10h2V3zm4.83 2.17l-1.42 1.42A6.92 6.92 0 0119 12c0 3.87-3.13 7-7 7s-7-3.13-7-7a6.92 6.92 0 012.59-5.41L6.17 5.17A8.99 8.99 0 003 12c0 4.97 4.03 9 9 9s9-4.03 9-9c0-2.74-1.23-5.18-3.17-6.83z" />
+                  </svg></div>
+                <div class="settings-info">
+                  <h4 style="margin:0; font-size:14px; font-weight:500;">Cerrar Sesión</h4>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ADMIN: GESTIÓN DE USUARIOS -->
+      <section id="pg-admin" class="page">
+        <header class="topbar">
+          <span class="back-btn" onclick="goBack()"><svg width="20" height="20" viewBox="0 0 24 24">
+              <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" fill="currentColor" />
+            </svg></span>
+          <h1>Gestión de Usuarios</h1>
+        </header>
+        <div class="content">
+          <div class="section-hero">
+            <div class="section-hero-icon"><svg viewBox="0 0 24 24">
+                <path
+                  d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" />
+              </svg></div>
+            <div class="section-hero-text">
+              <h2>Usuarios del Sistema</h2>
+              <p>Aprueba solicitudes y gestiona permisos de acceso</p>
+            </div>
+          </div>
+
+          <!-- NOTIFICATIONS -->
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <h2 class="section-title" style="margin: 0;">Notificaciones</h2>
+            <button class="btn-cancel" style="padding: 4px 8px; font-size: 12px;" onclick="clearNotifs()">Limpiar
+              todas</button>
+          </div>
+          <div id="adminNotifsList" style="margin-bottom: 24px;"></div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h2 class="section-title" style="margin: 0;">Gestión de Roles</h2>
+          </div>
+
+          <!-- Pending users -->
+          <div id="pendingUsersSection"></div>
+
+          <!-- Active users -->
+          <h2 class="section-title">Usuarios Activos</h2>
+          <div id="activeUsersList"></div>
+        </div>
+      </section>
+
+      <!-- INVENTARIO -->
+      <section id="pg-inventario" class="page">
+        <header class="topbar">
+          <span class="back-btn global-back" onclick="goBack()" style="display:none"><svg width="20" height="20"
+              viewBox="0 0 24 24">
+              <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" fill="currentColor" />
+            </svg></span>
+          <h1>Inventario</h1>
+          <div class="topbar-actions">
+            <div class="topbar-search-btn" onclick="showPage('pg-search-global')">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
+              </svg>
+            </div>
+          </div>
+        </header>
+        <div class="content">
+          <div class="section-hero">
+            <div class="section-hero-icon"><svg viewBox="0 0 24 24">
+                <path
+                  d="M20 2H4c-1 0-2 1-2 2v3.01c0 .72.43 1.34 1 1.69V20c0 1.1 1.1 2 2 2h14c.9 0 2-.9 2-2V8.7c.57-.35 1-.97 1-1.69V4c0-1-1-2-2-2zm-5 12H9v-2h6v2zm5-7H4V4h16v3z" />
+              </svg></div>
+            <div class="section-hero-text">
+              <h2>Gestión de Inventario</h2>
+              <p>Consulta y administra todos los equipos</p>
+            </div>
+          </div>
+
+          <!-- CONTROLS WRAPPER -->
+          <div class="inv-controls-wrapper"
+            style="background: var(--card); border-radius: 16px; padding: 20px; border: 1px solid var(--border); margin-bottom: 24px;">
+            <div class="search-bar" style="margin-bottom: 16px; position: relative;">
+              <svg class="search-icon" viewBox="0 0 24 24">
+                <path
+                  d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
+              </svg>
+              <input type="text" class="search-input" id="invSearchInput" placeholder="Buscar equipo o escanear QR..."
+                autocomplete="off" oninput="searchInventory(this.value)">
+              <svg class="qr-btn" viewBox="0 0 24 24"
+                style="height:20px;width:20px;position:absolute;right:16px;top:50%;transform:translateY(-50%);fill:var(--text2);">
+                <path
+                  d="M9.5 6.5v3h-3v-3h3M11 5H5v6h6V5zm-1.5 9.5v3h-3v-3h3M11 13H5v6h6v-6zm6.5-6.5v3h-3v-3h3M19 5h-6v6h6V5zm-6 8h1.5v1.5H13V13zm1.5 1.5H16V16h-1.5v-1.5zM16 13h1.5v1.5H16V13zm-3 3h1.5v1.5H13V16zm1.5 1.5H16V19h-1.5v-1.5zM16 16h1.5v1.5H16V16zm1.5-1.5H19V16h-1.5v-1.5zm0 3H19V19h-1.5v-1.5z">
+                </path>
+              </svg>
+            </div>
+            <div class="chips" id="catChips" style="margin-bottom:0; padding-bottom: 4px;">
+              <button class="chip active" data-cat="Todos">Todos</button>
+              <button class="chip" data-cat="Audio">Audio</button>
+              <button class="chip" data-cat="Iluminación">Iluminación</button>
+              <button class="chip" data-cat="Video">Video</button>
+              <button class="chip" data-cat="Rigging">Rigging</button>
+              <button class="chip" data-cat="Bodega">Bodega</button>
+            </div>
+          </div>
+          <div id="invSearchResults" class="search-results"></div>
+
+          <!-- LIST WRAPPER -->
+          <div class="inv-list-header"
+            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 0 4px;">
+            <h3 style="font-size: 14px; font-weight: 600; color: var(--text2);">Catálogo Disponibles</h3>
+            <span id="invResultsCount"
+              style="font-size: 12px; color: var(--text2); background: rgba(255,255,255,0.05); padding: 4px 10px; border-radius: 12px;">Cargando...</span>
+          </div>
+          <div id="equipList"></div>
+        </div>
+        <!-- EQUIPMENT DETAIL PANEL -->
+        <div class="equip-detail-panel" id="equipDetailPanel">
+          <div class="ed-backdrop" onclick="closeEquipDetail()"></div>
+          <div class="ed-sheet">
+            <div class="ed-handle" onclick="closeEquipDetail()">
+              <div class="ed-handle-bar"></div>
+            </div>
+            <div id="equipDetailContent"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ESCANEO -->
+      <section id="pg-scan" class="page">
+        <header class="topbar">
+          <span class="back-btn global-back" onclick="goBack()" style="display:none"><svg width="20" height="20"
+              viewBox="0 0 24 24">
+              <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" fill="currentColor" />
+            </svg></span>
+          <h1>Escaneo Rápido</h1>
+          <div class="topbar-actions">
+            <div class="topbar-search-btn" onclick="showPage('pg-search-global')">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
+              </svg>
+            </div>
+            <svg class="tb-icon" viewBox="0 0 24 24" onclick="location.reload()" title="Refrescar Página">
+              <path
+                d="M13 3a9 9 0 00-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7a6.97 6.97 0 01-4.95-2.05l-1.41 1.41A8.97 8.97 0 0013 21a9 9 0 000-18zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z" />
+            </svg>
+          </div>
+        </header>
+        <div class="content scan-content">
+          <!-- SCANNER STATUS -->
+          <div class="scanner-status" id="scannerStatus">
+            <div class="scanner-indicator">
+              <div class="scanner-dot"></div>
+              <span>Escáner USB listo — escanea un código de barras/QR</span>
+            </div>
+          </div>
+          <div class="qr-viewer">
+            <svg class="qr-svg" viewBox="0 0 24 24">
+              <path
+                d="M9.5 6.5v3h-3v-3h3M11 5H5v6h6V5zm-1.5 9.5v3h-3v-3h3M11 13H5v6h6v-6zm6.5-6.5v3h-3v-3h3M19 5h-6v6h6V5zm-6 8h1.5v1.5H13V13zm1.5 1.5H16V16h-1.5v-1.5zM16 13h1.5v1.5H16V13zm-3 3h1.5v1.5H13V16zm1.5 1.5H16V19h-1.5v-1.5zM16 16h1.5v1.5H16V16zm1.5-1.5H19V16h-1.5v-1.5zm0 3H19V19h-1.5v-1.5z" />
+            </svg>
+            <p class="qr-hint">Usa el escáner USB o busca manualmente</p>
+          </div>
+          <!-- LAST SCANNED -->
+          <div class="last-scanned" id="lastScanned" style="display:none">
+            <div class="last-scanned-label">Último escaneo:</div>
+            <div class="last-scanned-value" id="lastScannedValue"></div>
+          </div>
+          <!-- MANUAL SEARCH -->
+          <div class="scan-search">
+            <div class="search-box">
+              <svg class="search-icon" viewBox="0 0 24 24">
+                <path
+                  d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
+              </svg>
+              <input class="search-input" id="qrSearchInput" placeholder="Buscar activo (ej: AUD-001)"
+                oninput="searchAsset(this.value)" onkeydown="if(event.key === 'Enter') doScan()">
+            </div>
+            <div class="search-results" id="searchResults"></div>
+          </div>
+          <div class="scan-form">
+            <label>Evento</label>
+            <select class="input-field" id="scanEventSelect">
+              <option value="">Seleccionar Evento...</option>
+            </select>
+            <div class="toggle-row">
+              <button class="toggle-btn sal active" onclick="setTipo(this,'Salida')">SALIDA</button>
+              <button class="toggle-btn ent" onclick="setTipo(this,'Entrada')">ENTRADA</button>
+            </div>
+            <input class="input-field" placeholder="Notas (opcional)">
+            <button class="submit-btn" onclick="doScan()">REGISTRAR MOVIMIENTO</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- BUSCADOR GLOBAL -->
+      <section id="pg-search-global" class="page">
+        <header class="topbar">
+          <span class="back-btn" onclick="goBack()"><svg width="20" height="20" viewBox="0 0 24 24">
+              <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" fill="currentColor" />
+            </svg></span>
+          <h1>Buscador Global</h1>
+        </header>
+        <div class="content">
+          <div class="search-hero" style="margin-bottom: 24px;">
+            <div class="search-bar" style="position: relative;">
+              <svg class="search-icon" viewBox="0 0 24 24">
+                <path
+                  d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
+              </svg>
+              <input type="text" class="search-input" id="globalSearchInput"
+                placeholder="Busca en todo el inventario..." autocomplete="off"
+                oninput="handleGlobalSearch(this.value)">
+            </div>
+            <p style="font-size: 12px; color: var(--text2); margin-top: 8px; text-align: center;">Busca por QR/Código,
+              Modelo, Serie, Marca o Ubicación</p>
+          </div>
+          <div id="globalSearchResults" class="search-results-list"></div>
+          <div id="globalSearchEmpty" style="text-align: center; color: var(--text2); margin-top: 40px; display: none;">
+            <svg width="48" height="48" viewBox="0 0 24 24" style="opacity: 0.3; margin-bottom: 12px;">
+              <path
+                d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"
+                fill="currentColor" />
+            </svg>
+            <p>No se encontraron equipos con ese criterio</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- EVENTOS -->
+      <section id="pg-eventos" class="page">
+        <header class="topbar">
+          <span class="back-btn global-back" onclick="goBack()" style="display:none"><svg width="20" height="20"
+              viewBox="0 0 24 24">
+              <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" fill="currentColor" />
+            </svg></span>
+          <h1>Eventos</h1>
+          <div class="topbar-actions">
+            <div class="topbar-search-btn" onclick="showPage('pg-search-global')">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
+              </svg>
+            </div>
+            <svg class="tb-icon" viewBox="0 0 24 24" onclick="openAddEvent()" id="addEventBtn">
+              <path
+                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z" />
+            </svg>
+          </div>
+        </header>
+        <div class="content">
+          <!-- TABS -->
+          <div class="section-hero">
+            <div class="section-hero-icon"><svg viewBox="0 0 24 24">
+                <path
+                  d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z" />
+              </svg></div>
+            <div class="section-hero-text">
+              <h2>Gestión de Eventos</h2>
+              <p>Control de carga y devolución de equipos por evento</p>
+            </div>
+          </div>
+          <!-- TABS -->
+          <div class="ev-tabs" id="evTabs">
+            <button class="ev-tab active" data-tab="salida" onclick="switchEvTab('salida')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zm-3 11H8v-5h8v5zm3-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm-1-9H6v4h12V3z" />
+              </svg>
+              Salida
+            </button>
+            <button class="ev-tab" data-tab="curso" onclick="switchEvTab('curso')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+              </svg>
+              En Curso
+            </button>
+            <button class="ev-tab" data-tab="fin" onclick="switchEvTab('fin')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="M11 15h2v2h-2v-2zm0-8h2v6h-2V7zm1-5C6.47 2 2 6.5 2 12s4.47 10 10 10 10-4.5 10-10S17.53 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" />
+              </svg>
+              Finalizados
+            </button>
+          </div>
+
+          <!-- SALIDA (rendered dynamically) -->
+          <div class="ev-group" id="evGrupoSalida"></div>
+
+          <!-- EN CURSO (rendered dynamically) -->
+          <div class="ev-group" id="evGrupoCurso" style="display:none"></div>
+
+          <!-- FINALIZADOS (rendered dynamically) -->
+          <div class="ev-group" id="evGrupoFin" style="display:none"></div>
+        </div>
+      </section>
+
+      <!-- ADD EVENT MODAL -->
+      <div class="equip-detail-panel" id="addEventModal">
+        <div class="ed-backdrop" onclick="closeAddEventModal()"></div>
+        <div class="ed-sheet" style="max-height:85vh;overflow-y:auto">
+          <div class="ed-handle" onclick="closeAddEventModal()">
+            <div class="ed-handle-bar"></div>
+          </div>
+          <h2 class="ed-name" style="margin-bottom:16px">Nuevo Evento</h2>
+          <div class="add-event-form">
+            <label class="field-label">Nombre del Evento *</label>
+            <input class="input-field" id="newEvName" placeholder="Ej. Festival Monterrey 2026">
+
+            <label class="field-label">Cliente *</label>
+            <input class="input-field" id="newEvClient" placeholder="Nombre del cliente">
+
+            <div class="date-row">
+              <div class="date-col">
+                <label class="field-label">Fecha Inicio *</label>
+                <input class="input-field" type="date" id="newEvStart">
+              </div>
+              <div class="date-col">
+                <label class="field-label">Fecha Fin *</label>
+                <input class="input-field" type="date" id="newEvEnd">
+              </div>
+            </div>
+
+            <label class="field-label"
+              style="margin-top:16px; color: var(--gold); border-bottom: 1px solid rgba(212,175,55,0.2); padding-bottom: 4px;">Responsables
+              de Área</label>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px;">
+              <div>
+                <label class="field-label" style="font-size: 11px; margin-bottom: 4px;">Audio</label>
+                <input class="input-field" id="newRespAudio" placeholder="Encargado"
+                  style="padding: 8px 12px; font-size: 13px;">
+              </div>
+              <div>
+                <label class="field-label" style="font-size: 11px; margin-bottom: 4px;">Iluminación</label>
+                <input class="input-field" id="newRespIlu" placeholder="Encargado"
+                  style="padding: 8px 12px; font-size: 13px;">
+              </div>
+              <div>
+                <label class="field-label" style="font-size: 11px; margin-bottom: 4px;">Video</label>
+                <input class="input-field" id="newRespVideo" placeholder="Encargado"
+                  style="padding: 8px 12px; font-size: 13px;">
+              </div>
+              <div>
+                <label class="field-label" style="font-size: 11px; margin-bottom: 4px;">Rigging</label>
+                <input class="input-field" id="newRespRig" placeholder="Encargado"
+                  style="padding: 8px 12px; font-size: 13px;">
+              </div>
+              <div style="grid-column: span 2;">
+                <label class="field-label" style="font-size: 11px; margin-bottom: 4px;">Bodega / Logística</label>
+                <input class="input-field" id="newRespBod" placeholder="Encargado General"
+                  style="padding: 8px 12px; font-size: 13px;">
+              </div>
+            </div>
+
+            <label class="field-label" style="margin-top:16px">Equipos a Asignar</label>
+
+            <!-- Department Tabs -->
+            <div class="dept-tabs" id="deptTabs"></div>
+
+            <!-- Search -->
+            <div class="equip-search-wrap">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="var(--text2)">
+                <path
+                  d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
+              </svg>
+              <input class="equip-search" id="equipSearch" placeholder="Buscar equipo..." oninput="filterEquipPicker()">
+            </div>
+
+            <!-- Equipment List -->
+            <div class="equip-picker" id="equipPicker"></div>
+
+            <!-- Selected summary -->
+            <div class="equip-selected-summary" id="equipSelectedSummary"></div>
+
+            <div id="addEvError" class="auth-error" style="margin-top:8px"></div>
+            <button class="submit-btn" onclick="createEvent()" style="margin-top:16px">CREAR EVENTO</button>
+          </div>
+        </div>
+      </div>
+
+      <section id="pg-event-detail" class="page">
+        <header class="topbar"><span class="back-btn" onclick="goBack()"><svg width="20" height="20"
+              viewBox="0 0 24 24">
+              <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" fill="currentColor" />
+            </svg></span>
+          <h1 id="detailTitle">Evento</h1>
+          <div class="topbar-actions">
+            <div class="topbar-qr-btn" onclick="startEventScan(currentOpenEventKey)"
+              title="Escanear equipo para este este evento">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="M3 3h8v8H3V3zm2 2v4h4V5H5zm8-2h8v8h-8V3zm2 2v4h4V5h-4zM3 13h8v8H3v-8zm2 2v4h4v-4H5zm13-2h3v2h-3v-2zm-3 0h2v2h-2v-2zm3 3h2v3h-2v-3zm-3 3h2v2h-2v-2zm3-3h-3v2h3v-2zm-3-3h-2v2h2v-2zm3 8h3v-2h-3v2zm-3-2h2v2h-2v-2z" />
+              </svg>
+            </div>
+            <div class="topbar-search-btn" onclick="showPage('pg-search-global')">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
+              </svg>
+            </div>
+          </div>
+        </header>
+        <div class="content">
+          <div class="detail-header">
+            <div class="circle-progress">
+              <svg viewBox="0 0 36 36">
+                <path class="circle-bg" d="M18 2.0845a15.9155 15.9155 0 0 1 0 31.831a15.9155 15.9155 0 0 1 0-31.831"
+                  fill="none" stroke="#2a2d3a" stroke-width="3" />
+                <path class="circle-fill" id="circFill"
+                  d="M18 2.0845a15.9155 15.9155 0 0 1 0 31.831a15.9155 15.9155 0 0 1 0-31.831" fill="none"
+                  stroke="#7bc67e" stroke-width="3" stroke-dasharray="75, 100" />
+              </svg>
+              <span class="circle-text" id="circText">0/0</span>
+            </div>
+            <div class="detail-info">
+              <h3 id="detailClient">Cliente</h3>
+              <p id="detailDate">Fecha</p>
+              <p class="eq-pend" id="detailPend">0 pendientes</p>
+            </div>
+          </div>
+
+          <div class="scan-search" style="margin-bottom: 24px;">
+            <div class="search-box">
+              <svg class="search-icon" viewBox="0 0 24 24">
+                <path
+                  d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
+              </svg>
+              <input class="search-input" id="eventScanInput" placeholder="Escanear activo para este evento..."
+                autocomplete="off" onkeydown="if(event.key === 'Enter') doEventScan()">
+            </div>
+          </div>
+
+          <div id="eventChecklistArea"></div>
+        </div>
+
+        <div class="fab-group"
+          style="position: fixed; bottom: 80px; right: 24px; display: flex; flex-direction: column; gap: 12px; z-index: 100;">
+          <button class="fab" style="position: relative; right: 0; bottom: 0;" onclick="generateEventPDF()"
+            title="Generar Ticket PDF">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="#fff">
+              <path
+                d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zm-3 11H8v-5h8v5zm3-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm-1-9H6v4h12V3z" />
+            </svg>
+          </button>
+          <button class="fab" style="position: relative; right: 0; bottom: 0;" onclick="showPage('pg-scan')"
+            title="Escanear Equipo">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="#fff">
+              <path
+                d="M9.5 6.5v3h-3v-3h3M11 5H5v6h6V5zm-1.5 9.5v3h-3v-3h3M11 13H5v6h6v-6zm6.5-6.5v3h-3v-3h3M19 5h-6v6h6V5zm-6 8h1.5v1.5H13V13zm1.5 1.5H16V16h-1.5v-1.5zM16 13h1.5v1.5H16V13zm-3 3h1.5v1.5H13V16zm1.5 1.5H16V19h-1.5v-1.5zM16 16h1.5v1.5H16V16zm1.5-1.5H19V16h-1.5v-1.5zm0 3H19V19h-1.5v-1.5z" />
+            </svg>
+          </button>
+        </div>
+      </section>
+
+      <!-- ESTADÍSTICAS (NEW PAGE) -->
+      <section id="pg-stats" class="page">
+        <header class="topbar">
+          <span class="back-btn" onclick="goBack()"><svg width="20" height="20" viewBox="0 0 24 24">
+              <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" fill="currentColor" />
+            </svg></span>
+          <h1>Estadísticas</h1>
+          <div class="topbar-actions">
+            <div class="topbar-search-btn" onclick="showPage('pg-search-global')">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
+              </svg>
+            </div>
+          </div>
+        </header>
+        <div class="content">
+          <div class="section-hero">
+            <div class="section-hero-icon"><svg viewBox="0 0 24 24">
+                <path d="M10 20h4V4h-4v16zm-6 0h4v-8H4v8zM16 9v11h4V9h-4z" />
+              </svg></div>
+            <div class="section-hero-text">
+              <h2>Renta por Departamento</h2>
+              <p>Porcentaje de equipos actualmente en evento</p>
+            </div>
+          </div>
+          <div id="rentalStatsArea" class="rental-stats-vertical"></div>
+        </div>
+      </section>
+
+      <!-- RESUMEN GENERAL (DETAIL PAGE) -->
+      <section id="pg-resumen" class="page">
+        <header class="topbar">
+          <span class="back-btn" onclick="goBack()"><svg width="20" height="20" viewBox="0 0 24 24">
+              <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" fill="currentColor" />
+            </svg></span>
+          <h1>Resumen General</h1>
+          <div class="topbar-actions">
+            <div class="topbar-search-btn" onclick="showPage('pg-search-global')">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
+              </svg>
+            </div>
+            <svg class="tb-icon" viewBox="0 0 24 24" onclick="manualSync()" title="Sincronizar con Drive">
+              <path
+                d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"
+                fill="currentColor" />
+            </svg>
+          </div>
+        </header>
+        <div class="content">
+          <!-- SUMMARY STATS ROW -->
+          <div class="summary-stats-row" id="summaryStatsRow"></div>
+
+          <!-- TABS -->
+          <div class="resumen-tabs" id="resumenTabs">
+            <button class="resumen-tab active" data-rtab="eventos" onclick="switchResumenTab('eventos')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z" />
+              </svg>
+              Eventos
+            </button>
+            <button class="resumen-tab" data-rtab="equipo" onclick="switchResumenTab('equipo')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="M20 2H4c-1 0-2 1-2 2v3.01c0 .72.43 1.34 1 1.69V20c0 1.1 1.1 2 2 2h14c.9 0 2-.9 2-2V8.7c.57-.35 1-.97 1-1.69V4c0-1-1-2-2-2zm-5 12H9v-2h6v2zm5-7H4V4h16v3z" />
+              </svg>
+              Equipo Rentado
+            </button>
+            <button class="resumen-tab" data-rtab="inventario" onclick="switchResumenTab('inventario')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M10 20h4V4h-4v16zm-6 0h4v-8H4v8zM16 9v11h4V9h-4z" />
+              </svg>
+              Inventario
+            </button>
+          </div>
+
+          <!-- TAB CONTENT -->
+          <div class="resumen-content" id="resumenTabEventos"></div>
+          <div class="resumen-content" id="resumenTabEquipo" style="display:none"></div>
+          <div class="resumen-content" id="resumenTabInventario" style="display:none"></div>
+        </div>
+      </section>
+
+      <!-- MOVIMIENTOS -->
+      <section id="pg-movimientos" class="page">
+        <header class="topbar">
+          <span class="back-btn global-back" onclick="goBack()" style="display:none"><svg width="20" height="20"
+              viewBox="0 0 24 24">
+              <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" fill="currentColor" />
+            </svg></span>
+          <h1>Historial</h1>
+          <div class="topbar-actions">
+            <div class="topbar-search-btn" onclick="showPage('pg-search-global')">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
+              </svg>
+            </div>
+            <svg class="tb-icon" viewBox="0 0 24 24" onclick="exportarMovimientosCSV()" title="Exportar CSV">
+              <path
+                d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zm-6 .67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2v9.67z"
+                fill="currentColor" />
+            </svg>
+            <svg class="tb-icon" viewBox="0 0 24 24" onclick="showToast('Función de filtro en desarrollo')"
+              title="Filtrar">
+              <path d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z" fill="currentColor" />
+            </svg>
+          </div>
+        </header>
+        <div class="content">
+          <div class="ev-tabs" id="histTabs" style="margin-bottom: 24px;">
+            <button class="ev-tab active" data-htab="finalizados" onclick="switchHistTab('finalizados')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+              </svg>
+              Eventos Finalizados
+            </button>
+            <button class="ev-tab" data-htab="actividad" onclick="switchHistTab('actividad')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M14 17H4v2h10v-2zm6-8H4v2h16V9zM4 15h16v-2H4v2zM4 5v2h16V5H4z" />
+              </svg>
+              Actividad Detallada
+            </button>
+          </div>
+
+          <div id="histContentFinalizados">
+            <div id="movList"></div>
+          </div>
+          <div id="histContentActividad" style="display:none">
+            <div id="actividadList"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ALERT MODAL -->
+      <div class="modal-overlay" id="alertModal">
+        <div class="modal">
+          <div class="modal-icon-wrap"><svg width="40" height="40" viewBox="0 0 24 24" fill="#d4a843">
+              <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z" />
+            </svg></div>
+          <h2>Equipo No Disponible</h2>
+          <p>Este equipo ya se encuentra en evento</p>
+          <div class="modal-detail">
+            <strong>QSC KLA12 • AUD-001</strong>
+            <span class="ev-badge orange-b">En Evento</span>
+            <p>Ubicación: Festival CDMX 2026</p>
+          </div>
+          <button class="submit-btn" onclick="closeModal()">ENTENDIDO</button>
+        </div>
+      </div>
+
+      <!-- DELETE CONFIRM MODAL -->
+      <div class="modal-overlay" id="deleteModal">
+        <div class="modal">
+          <div class="modal-icon-wrap" style="background: rgba(216, 30, 30, 0.1);"><svg width="40" height="40"
+              viewBox="0 0 24 24" fill="var(--red)">
+              <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
+            </svg></div>
+          <h2 style="color:var(--text); margin-top:16px;">Eliminar Evento</h2>
+          <p style="color:var(--text2); font-size:14px; margin-bottom:24px; text-align:center;">¿Estás seguro de
+            eliminar <strong id="delModalEvName">este evento</strong>? Esta acción no se puede deshacer y los equipos no
+            regresarán al inventario automáticamente.</p>
+          <div style="display:flex; gap:12px; width:100%;">
+            <button class="btn-cancel" style="flex:1;" onclick="closeDeleteModal()">CANCELAR</button>
+            <button class="submit-btn" style="flex:1; background:var(--red);"
+              onclick="confirmDeleteEvent()">ELIMINAR</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- DRIVE MODAL -->
+      <div class="modal-overlay" id="driveModal">
+        <div class="modal drive-modal">
+          <div class="modal-icon-wrap"><svg width="40" height="40" viewBox="0 0 24 24" fill="var(--blue)">
+              <path
+                d="M7.71 3.5L1.15 15l4.58 6h11.14l4.58-6L14.29 3.5H7.71zM5.29 15l4.29-7.5h4.84L18.71 15H5.29zm9.38 2H9.33l-1.71 3h8.76l-1.71-3z" />
+            </svg></div>
+          <h2>Google Drive</h2>
+          <p>Selecciona un archivo para importar</p>
+          <div class="drive-files">
+            <div class="drive-file selected" onclick="selectDriveFile(this)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="#d4a843">
+                <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-1 2v4H6V5h12z" />
+              </svg>
+              <span>RAP_Inventario_DB</span>
+              <small>Google Sheets</small>
+            </div>
+            <div class="drive-file" onclick="selectDriveFile(this)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="#4a90ff">
+                <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-1 2v4H6V5h12z" />
+              </svg>
+              <span>Catalogo_Equipos_2026</span>
+              <small>Google Sheets</small>
+            </div>
+            <div class="drive-file" onclick="selectDriveFile(this)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="#d4a843">
+                <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-1 2v4H6V5h12z" />
+              </svg>
+              <span>Backup_Inventario</span>
+              <small>Google Sheets</small>
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button class="btn-cancel" onclick="closeDriveModal()">Cancelar</button>
+            <button class="submit-btn btn-sm" onclick="importDrive()">Importar</button>
+          </div>
+        </div>
+      </div>
+      <!-- BOTTOM NAV -->
+      <nav class="bottom-nav">
+        <button class="nav-btn active" data-page="pg-dashboard">
+          <svg viewBox="0 0 24 24">
+            <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z" />
+          </svg>
+          <small>Inicio</small>
+        </button>
+        <button class="nav-btn" data-page="pg-inventario">
+          <svg viewBox="0 0 24 24">
+            <path
+              d="M20 2H4c-1 0-2 1-2 2v3.01c0 .72.43 1.34 1 1.69V20c0 1.1 1.1 2 2 2h14c.9 0 2-.9 2-2V8.7c.57-.35 1-.97 1-1.69V4c0-1-1-2-2-2zm-5 12H9v-2h6v2zm5-7H4V4h16v3z" />
+          </svg>
+          <small>Inventario</small>
+        </button>
+        <button class="nav-btn scan-nav" data-page="pg-scan">
+          <div class="nav-scan-icon">
+            <svg viewBox="0 0 24 24">
+              <path
+                d="M9.5 6.5v3h-3v-3h3M11 5H5v6h6V5zm-1.5 9.5v3h-3v-3h3M11 13H5v6h6v-6zm6.5-6.5v3h-3v-3h3M19 5h-6v6h6V5zm-6 8h1.5v1.5H13V13zm1.5 1.5H16V16h-1.5v-1.5zM16 13h1.5v1.5H16V13zm-3 3h1.5v1.5H13V16zm1.5 1.5H16V19h-1.5v-1.5zM16 16h1.5v1.5H16V16zm1.5-1.5H19V16h-1.5v-1.5zm0 3H19V19h-1.5v-1.5z" />
+            </svg>
+          </div>
+        </button>
+        <button class="nav-btn" data-page="pg-eventos">
+          <svg viewBox="0 0 24 24">
+            <path
+              d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z" />
+          </svg>
+          <small>Eventos</small>
+        </button>
+        <button class="nav-btn" data-page="pg-movimientos">
+          <svg viewBox="0 0 24 24">
+            <path d="M6.99 11L3 15l3.99 4v-3H14v-2H6.99v-3zM21 9l-3.99-4v3H10v2h7.01v3L21 9z" />
+          </svg>
+          <small>Historial</small>
+        </button>
+      </nav>
+    </div>
+  </div>
+  <!-- Hidden input for USB scanner capture -->
+  <input id="scannerInput" style="position:absolute;left:-9999px;opacity:0" aria-hidden="true" autocomplete="off">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="app.js?v=16"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW Registration failed:', err));
+      });
+    }
+  </script>
+</body>
+
+</html>

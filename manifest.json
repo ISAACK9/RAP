@@ -1,0 +1,17 @@
+{
+  "name": "RAP Inventario",
+  "short_name": "RAP",
+  "description": "Gestión de Equipo Profesional e Inventario",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#16161e",
+  "theme_color": "#D4AF37",
+  "icons": [
+    {
+      "src": "pwa_icon_512_1771875882557.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
