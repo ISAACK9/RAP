@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rap-v29';
+const CACHE_NAME = 'rap-v30';
 const ASSETS = [
     './',
     './index.html',
@@ -37,4 +37,10 @@ self.addEventListener('activate', event => {
             );
         }).then(() => self.clients.claim())
     );
+});
+
+self.addEventListener('message', event => {
+    if (event.data === 'SKIP_WAITING') {
+        self.skipWaiting();
+    }
 });
