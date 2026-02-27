@@ -1520,9 +1520,40 @@ function getStoredMovimientos() {
   }
 }
 
-function saveMovimientos(data) {
+async function saveMovimientos(data) {
   localStorage.setItem('rap_movimientos_v1', JSON.stringify(data));
+  await pushSharedData();
 }
+
+async function pushSharedData() {
+  const p = { action: 'push', events: getStoredEvents(), movements: getStoredMovimientos() };
+  try {
+    await fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(p) });
+  } catch (e) {
+    console.warn("Push error:", e);
+  }
+}
+
+async function pullSharedData() {
+  return new Promise((resolve) => {
+    const cb = 'pull_' + Date.now();
+    window[cb] = (res) => {
+      delete window[cb];
+      document.body.removeChild(sc);
+      if (res && res.success && res.data) {
+        if (res.data.events) { checkData = res.data.events; localStorage.setItem('rap_events_v1', JSON.stringify(checkData)); }
+        if (res.data.movements) { movimientos = res.data.movements; localStorage.setItem('rap_movimientos_v1', JSON.stringify(movements)); }
+        renderScanEventOptions();
+        resolve(true);
+      }
+      resolve(false);
+    };
+    const sc = document.createElement('script');
+    sc.src = `${API_URL}?action=pull&callback=${cb}`;
+    document.body.appendChild(sc);
+  });
+}
+
 
 // === INITIALIZE DATA ===
 checkData = getStoredEvents();
