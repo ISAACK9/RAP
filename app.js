@@ -35,17 +35,18 @@ function initUsers() {
 }
 initUsers();
 
-// DEVELOPMENT BYPASS: AUTO-LOGIN ADMIN
+// PRODUCTION: CHECK SESSION ON LOAD
 document.addEventListener('DOMContentLoaded', async () => {
   initTheme();
-  initNavigation(); // Attach sidebar/nav button click listeners
-  const users = getUsers();
-  const admin = users.find(u => u.id === 'admin-001');
-  if (admin) {
-    sessionStorage.setItem('rap_current_user', admin.id);
-    applyUserSession(admin);
-    const authScreen = document.getElementById('authScreen');
+  initNavigation();
+
+  const currentUser = getCurrentUser();
+  const authScreen = document.getElementById('authScreen');
+
+  if (currentUser) {
+    // Session exists, proceed normally
     if (authScreen) authScreen.style.display = 'none';
+    applyUserSession(currentUser);
 
     // AUTOMATIC SYNC ON ENTRY
     try {
@@ -54,9 +55,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       console.error("Auto-sync failed on entry:", e);
     }
 
-    // Initial renders
     renderDashboardCharts();
-    renderScanEventOptions(); // Populate dropdown when DOM is ready
+    renderScanEventOptions();
+  } else {
+    // No session, ensure auth screen is visible
+    if (authScreen) authScreen.style.display = 'flex';
   }
 });
 
