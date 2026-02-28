@@ -1,4 +1,4 @@
-﻿console.log("RAP_ENGINE_LOADED_V20_PRODUCTION");
+﻿console.log("RAP_ENGINE_LOADED_V21_PRODUCTION");
 // === DATABASE CONNECTION (IndexedDB & Google Apps Script) ===
 const API_URL = "https://script.google.com/macros/s/AKfycbzT7OIAlgLhved2naO9FKz4PiBn_2VSl9CK7epvZc8mr3hWcJpo4i77Kt3Mmr6kJ1V6eQ/exec";
 const API_TOKEN = "RAP_SECURE_TOKEN_2026_V1_ISAAC";
@@ -637,7 +637,8 @@ async function syncInventoryToIndexedDB() {
         window.equipos = equipos;
         const lastSync = localStorage.getItem('rap_last_sync');
         const syncStr = lastSync ? ' (últ. sync: ' + new Date(lastSync).toLocaleDateString('es-MX') + ')' : '';
-        showToast('?? Usando datos en caché' + syncStr);
+        showToast('🕒 Usando datos en caché' + syncStr);
+        if (typeof renderEquipPicker === 'function') renderEquipPicker();
       }
     } catch (e) {
       console.error('Error cargando caché:', e);
@@ -1094,19 +1095,22 @@ function renderEquipPicker() {
   const groupsTemp = {};
 
   // 1. Create Groups from the global equipos array
-  equipos.forEach((eq, idx) => {
+  const sourceArray = (window.equipos && window.equipos.length > 0) ? window.equipos : (equipos || []);
+
+  sourceArray.forEach((eq, idx) => {
     const groupKey = `${eq.cat}|${eq.nombre}|${eq.descripcion}|${eq.marca}`;
     if (!groupsTemp[groupKey]) {
       groupsTemp[groupKey] = {
-        cat: eq.cat,
-        nombre: eq.nombre,
-        descripcion: eq.descripcion,
-        marca: eq.marca,
+        cat: eq.cat || 'Otros',
+        nombre: eq.nombre || 'Sin nombre',
+        descripcion: eq.descripcion || '',
+        marca: eq.marca || '',
         availableIndices: [],
         totalAvailable: 0
       };
     }
-    if (eq.estado === 'Disponible') {
+    const normalizedStatus = (eq.estado || '').trim().toLowerCase();
+    if (normalizedStatus === 'disponible' || normalizedStatus === 'available') {
       groupsTemp[groupKey].availableIndices.push(idx);
       groupsTemp[groupKey].totalAvailable++;
     }
