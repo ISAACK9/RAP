@@ -1,4 +1,4 @@
-﻿console.log("RAP_ENGINE_LOADED_V22_PRODUCTION");
+﻿console.log("RAP_ENGINE_LOADED_V23_PRODUCTION");
 // === DATABASE CONNECTION (IndexedDB & Google Apps Script) ===
 const API_URL = "https://script.google.com/macros/s/AKfycbzT7OIAlgLhved2naO9FKz4PiBn_2VSl9CK7epvZc8mr3hWcJpo4i77Kt3Mmr6kJ1V6eQ/exec";
 const API_TOKEN = "RAP_SECURE_TOKEN_2026_V1_ISAAC";
@@ -159,6 +159,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     renderDashboardCharts();
     renderScanEventOptions();
+
+    // START REAL-TIME SYNC HEARTBEAT (V23)
+    startSyncHeartbeat();
   } else {
     // No session, ensure auth screen is visible
     if (authScreen) authScreen.style.display = 'flex';
@@ -507,9 +510,11 @@ async function syncInventoryToIndexedDB() {
     if (isPlaceholder) {
       // Sin URL real configurada ? usar caché local o datos en memoria
       console.warn('?? API_URL no configurado. Usando datos en memoria.');
-      if (txtStat) txtStat.textContent = 'Modo local (sin Drive configurado)';
-      if (bar) bar.style.width = '100%';
-      if (txtPct) txtPct.textContent = '100%';
+      if (!window._isSyncingSilent) {
+        if (txtStat) txtStat.textContent = 'Modo local (sin Drive configurado)';
+        if (bar) bar.style.width = '100%';
+        if (txtPct) txtPct.textContent = '100%';
+      }
 
       // Intentar cargar desde IndexedDB primero
       const cached = await getAllItemsFromDB();
@@ -519,17 +524,21 @@ async function syncInventoryToIndexedDB() {
       }
       // Si no hay caché, los datos en memoria (window.equipos) ya están cargados
 
-      setTimeout(() => {
-        if (overlay) overlay.style.display = 'none';
-        showToast('Modo local — configura Google Drive para sincronización');
-      }, 800);
+      if (!window._isSyncingSilent) {
+        setTimeout(() => {
+          if (overlay) overlay.style.display = 'none';
+          showToast('Modo local — configura Google Drive para sincronización');
+        }, 800);
+      }
       return;
     }
 
     // --- PASO 2: Leer los archivos Excel (CSV) directamente desde Google Docs públicos ---
-    if (bar) bar.style.width = '15%';
-    if (txtPct) txtPct.textContent = '15%';
-    if (txtStat) txtStat.textContent = 'Conectando con Google Drive...';
+    if (!window._isSyncingSilent) {
+      if (bar) bar.style.width = '15%';
+      if (txtPct) txtPct.textContent = '15%';
+      if (txtStat) txtStat.textContent = 'Conectando con Google Drive...';
+    }
 
     // Lista de URLs GVIZ a descargar (Inmune a CORS sin autenticación)
     const gvizUrls = [
@@ -649,6 +658,63 @@ async function syncInventoryToIndexedDB() {
     } catch (e) {
       console.error('Error cargando caché:', e);
     }
+  } finally {
+    window._isSyncingSilent = false;
+  }
+}
+
+// === REAL-TIME SYNC HEARTBEAT (Sincronía Total) ===
+let syncHeartbeatInterval = null;
+
+function startSyncHeartbeat() {
+  if (syncHeartbeatInterval) clearInterval(syncHeartbeatInterval);
+
+  // Sincronizar cada 60 segundos
+  syncHeartbeatInterval = setInterval(async () => {
+    const user = getCurrentUser();
+    if (!user) return; // No sincronizar si no hay sesión
+
+    console.log("🕒 Heartbeat: Sincronización automática en curso...");
+    window._isSyncingSilent = true;
+
+    try {
+      await pullSharedData();
+      await syncInventoryToIndexedDB();
+
+      // Refrescar la vista actual de forma inteligente
+      refreshActivePage();
+    } catch (e) {
+      console.warn("Heartbeat fallido:", e);
+    } finally {
+      window._isSyncingSilent = false;
+    }
+  }, 60000);
+}
+
+function refreshActivePage() {
+  const activePage = document.querySelector('.page.active');
+  if (!activePage) return;
+
+  const id = activePage.id;
+  console.log("🔄 Refrescando vista activa:", id);
+
+  if (id === 'pg-dashboard') {
+    renderDashboardCharts();
+  } else if (id === 'pg-eventos') {
+    renderEventos();
+  } else if (id === 'pg-movimientos') {
+    renderMovimientosList();
+  } else if (id === 'pg-inventario') {
+    const currentTab = document.querySelector('.chip.active');
+    const cat = currentTab ? currentTab.dataset.cat : 'Todos';
+    renderEquipos(cat);
+  } else if (id === 'pg-admin') {
+    renderAdminPanel();
+  }
+
+  // Si hay un modal de selector de equipos abierto, refrescarlo también
+  if (document.getElementById('equipPickerModal') && document.getElementById('equipPickerModal').style.display === 'flex') {
+    renderEquipPicker();
   }
 }
 
