@@ -23,7 +23,14 @@ $body1 = @{
     users     = @($adminUser)
 } | ConvertTo-Json -Depth 10
 
-Invoke-RestMethod -Uri $API_URL -Method Post -Body $body1 -ContentType "application/json"
+try {
+    Invoke-RestMethod -Uri $API_URL -Method Post -Body $body1 -ContentType "application/json"
+}
+catch {
+    Write-Host "⚠️ ERROR DE ACCESO: El script de Google no es público o el Token es incorrecto." -ForegroundColor Yellow
+    Write-Host "Asegúrate de que el despliegue esté configurado para 'Anyone' (Cualquier persona)." -ForegroundColor Gray
+    # No terminamos el script para intentar el siguiente paso
+}
 
 Write-Host "Resetting Notifications..."
 $body2 = @{
@@ -32,6 +39,11 @@ $body2 = @{
     notifications = @()
 } | ConvertTo-Json
 
-Invoke-RestMethod -Uri $API_URL -Method Post -Body $body2 -ContentType "application/json"
+try {
+    Invoke-RestMethod -Uri $API_URL -Method Post -Body $body2 -ContentType "application/json"
+}
+catch {
+    Write-Host "⚠️ ERROR DE ACCESO: No se pudo conectar con el servidor para notificaciones." -ForegroundColor Yellow
+}
 
 Write-Host "Reset complete."

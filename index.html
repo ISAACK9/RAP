@@ -1177,16 +1177,27 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  <script src="app.js?v=16"></script>
+  <script src="main.js?v=20"></script>
   <script>
+    // Force update for all users stuck on old cache
+    const UPDATE_VERSION = '2026-02-28-RECOVERY-V2';
+    if (localStorage.getItem('rap_force_update') !== UPDATE_VERSION) {
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(registrations => {
+          for (let registration of registrations) { registration.unregister(); }
+          localStorage.setItem('rap_force_update', UPDATE_VERSION);
+          window.location.reload(true);
+        });
+      }
+    }
+
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js').then(reg => {
+        navigator.serviceWorker.register('./sw.js?v=2').then(reg => {
           reg.onupdatefound = () => {
             const installingWorker = reg.installing;
             installingWorker.onstatechange = () => {
               if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                // New update available, force activation
                 installingWorker.postMessage('SKIP_WAITING');
               }
             };

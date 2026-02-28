@@ -41,6 +41,11 @@
                     })
                 });
 
+                statusEl.innerText = "Clearing local cache...";
+                localStorage.removeItem('rap_users_v2');
+                localStorage.removeItem('rap_current_user');
+                sessionStorage.removeItem('rap_current_user');
+
                 statusEl.innerText = "Clearing notifications...";
                 const resNotifs = await fetch(API_URL, {
                     method: 'POST',

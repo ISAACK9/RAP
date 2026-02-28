@@ -61,8 +61,7 @@ function doGet(e) {
         if (r[0] === 'archived_events') result.data.archivedEvents = JSON.parse(r[1]);
         if (r[0] === 'notifications') result.data.notifications = JSON.parse(r[1]);
       });
-    }
-    else if (action === 'pullUsers') {
+    } else if (action === 'pullUsers') {
       var sheet = getSharedSheet('USUARIOS');
       var data = sheet.getDataRange().getValues();
       var users = [];
@@ -74,7 +73,7 @@ function doGet(e) {
           email: String(data[i][3]),
           phone: String(data[i][4]),
           cargo: String(data[i][5]),
-          // Password REMOVED for security
+          password: String(data[i][6]), // Incluido para validación si se requiere
           role: String(data[i][7]),
           status: String(data[i][8]),
           permissions: JSON.parse(data[i][9] || '[]'),
@@ -82,9 +81,52 @@ function doGet(e) {
         });
       }
       result = { success: true, data: users };
+    } else if (action === 'login') {
+      var sheet = getSharedSheet('USUARIOS');
+      var data = sheet.getDataRange().getValues();
+      var userFound = null;
+      var username = e.parameter.username;
+      var password = e.parameter.password;
+      
+      for (var i = 1; i < data.length; i++) {
+        if (String(data[i][2]).toLowerCase() === String(username).toLowerCase() && String(data[i][6]) === String(password)) {
+          userFound = {
+            id: String(data[i][0]),
+            name: String(data[i][1]),
+            username: String(data[i][2]),
+            role: String(data[i][7]),
+            status: String(data[i][8]),
+            permissions: JSON.parse(data[i][9] || '[]')
+          };
+          break;
+        }
+      }
+      if (userFound) result = { success: true, data: userFound };
+      else result = { success: false, error: 'Credenciales inválidas' };
+    } else if (action === 'signup') {
+      var sheet = getSharedSheet('USUARIOS');
+      var userStr = e.parameter.user;
+      var u = JSON.parse(userStr);
+      
+      // Duplication Check
+      var data = sheet.getDataRange().getValues();
+      var exists = false;
+      for (var i = 1; i < data.length; i++) {
+        if (String(data[i][2]).toLowerCase() === String(u.username).toLowerCase()) {
+          exists = true;
+          break;
+        }
+      }
+      
+      if (exists) {
+        result = { success: false, error: 'Ese nombre de usuario ya existe en el servidor' };
+      } else {
+        sheet.appendRow([u.id, u.name, u.username, u.email, u.phone, u.cargo, u.password, u.role, u.status, JSON.stringify(u.permissions), u.createdAt]);
+        result = { success: true };
+      }
     }
   } catch (err) {
-    result.error = err.message;
+    result = { success: false, error: err.message };
   }
   
   return createJsonResponse(result, e);
@@ -144,6 +186,21 @@ function doPost(e) {
     else if (action === 'signup') {
       var sheet = getSharedSheet('USUARIOS');
       var u = contents.user;
+      
+      // Verification: Does user already exist?
+      var data = sheet.getDataRange().getValues();
+      var exists = false;
+      for (var i = 1; i < data.length; i++) {
+        if (String(data[i][2]).toLowerCase() === String(u.username).toLowerCase()) {
+          exists = true;
+          break;
+        }
+      }
+      
+      if (exists) {
+        return createJsonResponse({ success: false, error: 'Ese nombre de usuario ya existe en el servidor' });
+      }
+      
       sheet.appendRow([u.id, u.name, u.username, u.email, u.phone, u.cargo, u.password, u.role, u.status, JSON.stringify(u.permissions), u.createdAt]);
       return createJsonResponse({ success: true });
     }

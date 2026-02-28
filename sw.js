@@ -1,9 +1,9 @@
-const CACHE_NAME = 'rap-v30';
+const CACHE_NAME = 'rap-v33';
 const ASSETS = [
     './',
     './index.html',
     './styles.css',
-    './app.js',
+    './main.js',
     './manifest.json',
     'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap',
     'https://cdn.jsdelivr.net/npm/chart.js',
