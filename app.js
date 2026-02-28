@@ -1,4 +1,4 @@
-﻿console.log("RAP_ENGINE_LOADED_V21_PRODUCTION");
+﻿console.log("RAP_ENGINE_LOADED_V22_PRODUCTION");
 // === DATABASE CONNECTION (IndexedDB & Google Apps Script) ===
 const API_URL = "https://script.google.com/macros/s/AKfycbzT7OIAlgLhved2naO9FKz4PiBn_2VSl9CK7epvZc8mr3hWcJpo4i77Kt3Mmr6kJ1V6eQ/exec";
 const API_TOKEN = "RAP_SECURE_TOKEN_2026_V1_ISAAC";
@@ -178,7 +178,10 @@ function getUsers() {
 }
 function saveUsers(users) { localStorage.setItem('rap_users_v2', JSON.stringify(users)); }
 function getCurrentUser() {
-  const sid = sessionStorage.getItem('rap_current_user');
+  let sid = sessionStorage.getItem('rap_current_user');
+  if (!sid) {
+    sid = localStorage.getItem('rap_persistent_user');
+  }
   if (!sid) return null;
   return getUsers().find(u => u.id === sid) || null;
 }
@@ -284,8 +287,10 @@ async function doLogin() {
     const rememberObj = document.getElementById('loginRemember');
     if (rememberObj && rememberObj.checked) {
       localStorage.setItem('rap_saved_user', username);
+      localStorage.setItem('rap_persistent_user', user.id);
     } else {
       localStorage.removeItem('rap_saved_user');
+      localStorage.removeItem('rap_persistent_user');
     }
 
     // Registrar login en movimientos globales si lo requiere
@@ -3316,6 +3321,8 @@ function openSupport() {
   showToast('Soporte: soporte@rap.mx');
 }
 function doLogout() {
+  sessionStorage.removeItem('rap_current_user');
+  localStorage.removeItem('rap_persistent_user');
   document.getElementById('authScreen').style.display = 'flex';
   setTimeout(() => {
     document.getElementById('authScreen').classList.remove('hidden');
