@@ -206,6 +206,29 @@ class DatabaseService {
     }
 
     /**
+     * OBTENER USUARIOS (Para el panel de administración)
+     * Resuelve requerimiento "Para que el Administrador vea y edite roles"
+     */
+    async obtenerUsuarios() {
+        try {
+            const response = await sheets.spreadsheets.values.get({
+                spreadsheetId: SPREADSHEET_ID,
+                range: 'Usuarios!A:Z'
+            });
+
+            const allUsers = this._mapRowsToObjects(response.data.values);
+
+            return {
+                success: true,
+                items: allUsers
+            };
+        } catch (error) {
+            console.error('[DB Service] Error en obtenerUsuarios:', error.message);
+            return { success: false, items: [], error: 'Error obteniendo lista de usuarios.' };
+        }
+    }
+
+    /**
      * ACTUALIZAR USUARIO (CRUD Administrativo)
      * Resuelve requerimiento "Para el sistema de permisos del administrador"
      * @param {String} username 

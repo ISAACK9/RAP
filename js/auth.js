@@ -26,15 +26,28 @@ function updateAuthUI() {
     const nameDisplay = document.getElementById('user-name-display');
     const loginBtn = document.getElementById('btn-login-modal');
     const logoutBtn = document.getElementById('btn-logout');
+    const adminNavItem = document.getElementById('nav-item-admin');
+    const syncBtn = document.getElementById('btn-sync-inventory');
 
     if (AuthState.isLoggedIn && AuthState.user) {
         if (nameDisplay) nameDisplay.innerText = `${AuthState.user.username} (${AuthState.user.role})`;
         if (loginBtn) loginBtn.classList.add('hidden');
         if (logoutBtn) logoutBtn.classList.remove('hidden');
+
+        // Show/Hide Admin specific controls
+        if (isAdmin()) {
+            if (adminNavItem) adminNavItem.classList.remove('hidden');
+            if (syncBtn) syncBtn.classList.remove('hidden');
+        } else {
+            if (adminNavItem) adminNavItem.classList.add('hidden');
+            if (syncBtn) syncBtn.classList.add('hidden');
+        }
     } else {
         if (nameDisplay) nameDisplay.innerText = "Invitado";
         if (loginBtn) loginBtn.classList.remove('hidden');
         if (logoutBtn) logoutBtn.classList.add('hidden');
+        if (adminNavItem) adminNavItem.classList.add('hidden');
+        if (syncBtn) syncBtn.classList.add('hidden'); // Guests shouldn't sync
     }
 }
 

@@ -53,6 +53,8 @@
                             class="material-icons-round">event_note</i><span>Eventos</span></a></li>
                 <li><a href="#" data-route="history"><i
                             class="material-icons-round">history</i><span>Historial</span></a></li>
+                <li id="nav-item-admin" class="hidden"><a href="#" data-route="admin"><i
+                            class="material-icons-round">admin_panel_settings</i><span>Gestión Perfiles</span></a></li>
             </ul>
             <div class="nav-footer">
                 <div class="user-info" id="current-user-info">
@@ -208,6 +210,36 @@
                     <ul id="history-list" class="divide-y divide-gray-50">
                         <!-- Historial dinámico -->
                     </ul>
+                </div>
+            </section>
+
+            <!-- VISTA ADMINISTRADOR -->
+            <section id="view-admin" class="view hidden px-4 md:px-8 py-6">
+                <header class="flex justify-between items-center mb-6">
+                    <h1 class="text-2xl font-bold text-gray-800 tracking-tight">Gestión de Perfiles</h1>
+                    <button
+                        class="p-2 bg-white border border-gray-200 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all shadow-sm flex items-center justify-center"
+                        id="btn-refresh-users" title="Actualizar">
+                        <i class="material-icons-round">refresh</i>
+                    </button>
+                </header>
+                <div class="bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100 p-6">
+                    <p class="text-sm text-gray-500 mb-4">Solo los Administradores pueden cambiar los roles y permisos
+                        de los usuarios registrados en el sistema.</p>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
+                                    <th class="px-4 py-3 font-medium rounded-tl-xl">Usuario</th>
+                                    <th class="px-4 py-3 font-medium">Permisos Actuales</th>
+                                    <th class="px-4 py-3 font-medium rounded-tr-xl">Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody id="users-table-body" class="divide-y divide-gray-100">
+                                <!-- Users get dynamically loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </section>
 

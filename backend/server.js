@@ -109,6 +109,12 @@ app.post('/api/action', async (req, res) => {
         return res.status(200).json(result);
     }
 
+    if (action === 'getUsers') {
+        const result = await databaseService.obtenerUsuarios();
+        if (!result.success) return res.status(500).json(result);
+        return res.status(200).json(result);
+    }
+
     // Si es un comando de Mock como getDashboardStats
     if (action === 'getDashboardStats') {
         return res.status(200).json({

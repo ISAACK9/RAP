@@ -90,6 +90,9 @@ async function loadViewData(route) {
         case 'history':
             await loadHistory();
             break;
+        case 'admin':
+            if (isAdmin()) await loadAdminPanel();
+            break;
     }
 }
 
@@ -387,3 +390,112 @@ function renderHistory(items) {
 
 // Refresh history button listener
 document.getElementById('btn-refresh-history')?.addEventListener('click', loadHistory);
+
+
+// ==========================================
+// ADMIN PANEL (USER MANAGEMENT)
+// ==========================================
+async function loadAdminPanel() {
+    try {
+        const tbody = document.getElementById('users-table-body');
+        if (!tbody) return;
+
+        // Mostrar estado de carga (Skeletons minimalistas)
+        tbody.innerHTML = `
+            <tr><td colspan="3" class="px-4 py-4"><div class="animate-pulse h-4 bg-gray-200 rounded w-full"></div></td></tr>
+            <tr><td colspan="3" class="px-4 py-4"><div class="animate-pulse h-4 bg-gray-200 rounded w-full"></div></td></tr>
+        `;
+
+        // Llamar al backend
+        const response = await DB.query('getUsers');
+
+        if (!response || !response.success) {
+            tbody.innerHTML = `<tr><td colspan="3" class="px-4 py-4 text-center text-red-500">Error cargando usuarios: ${response?.error || 'Desconocido'}</td></tr>`;
+            return;
+        }
+
+        const users = response.items || [];
+
+        if (users.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="3" class="px-4 py-4 text-center text-gray-500">No hay usuarios registrados.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = '';
+        users.forEach(user => {
+            const role = user.Rol || 'Usuario';
+            // Prevenir auto-bloqueo: si es el Admin actual en pantalla, deshabilitar cambio
+            const isSelf = user.Username === AuthState.user?.username;
+
+            const tr = document.createElement('tr');
+            tr.className = "hover:bg-gray-50 transition-colors";
+            tr.innerHTML = `
+                <td class="px-4 py-3 whitespace-nowrap">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-sm">
+                            ${(user.Username || '?').charAt(0).toUpperCase()}
+                        </div>
+                        <span class="font-medium text-gray-900">${user.Username}</span>
+                    </div>
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap">
+                    <span class="px-3 py-1 rounded-full text-xs font-semibold ${role === 'Administrador' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}">
+                        ${role}
+                    </span>
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap">
+                    <select class="role-select bg-white border border-gray-300 text-gray-700 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2 disabled:bg-gray-100 disabled:text-gray-400" 
+                            data-username="${user.Username}" ${isSelf ? 'disabled' : ''}>
+                        <option value="Usuario" ${role !== 'Administrador' ? 'selected' : ''}>Usuario Regular</option>
+                        <option value="Administrador" ${role === 'Administrador' ? 'selected' : ''}>Administrador</option>
+                    </select>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        // Bind events for role changes
+        document.querySelectorAll('.role-select').forEach(select => {
+            select.addEventListener('change', async (e) => {
+                const username = e.target.getAttribute('data-username');
+                const nuevoRol = e.target.value;
+                const previousRole = nuevoRol === 'Administrador' ? 'Usuario' : 'Administrador';
+
+                // Optimizar UX: deshabilitar el select mientras carga
+                e.target.disabled = true;
+                e.target.classList.add('animate-pulse');
+
+                try {
+                    const res = await fetch(API_URL.replace('/action', '/users/role'), {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username, nuevoRol })
+                    });
+
+                    const data = await res.json();
+                    if (data.success) {
+                        UI.showToast(`Rol de ${username} actualizado a ${nuevoRol}`);
+                        // Refrescar tabla visualmente
+                        await loadAdminPanel();
+                    } else {
+                        throw new Error(data.error || 'Server error');
+                    }
+                } catch (error) {
+                    UI.showToast(`Error al actualizar rol: ${error.message}`, 'error');
+                    e.target.value = previousRole; // Revertir visualmente
+                } finally {
+                    e.target.disabled = false;
+                    e.target.classList.remove('animate-pulse');
+                }
+            });
+        });
+
+    } catch (e) {
+        console.error("Error in loadAdminPanel", e);
+    }
+}
+
+// Bind admin refresh button
+document.getElementById('btn-refresh-users')?.addEventListener('click', () => {
+    loadAdminPanel();
+});
