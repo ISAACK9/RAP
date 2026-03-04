@@ -204,18 +204,22 @@ async function loadInventory() {
 function applyInventoryFilters() {
     if (!window.currentInventoryData) return;
 
-    const searchTerm = (document.getElementById('search-inventory')?.value || '').trim().toLowerCase();
-    const filterArea = window.currentInventoryFilter || 'all';
+    // Helper para quitar acentos y hacer case-insensitive
+    const normalizeString = (str) => String(str).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
+
+    const rawSearch = document.getElementById('search-inventory')?.value || '';
+    const searchTerm = normalizeString(rawSearch);
+    const filterArea = normalizeString(window.currentInventoryFilter || 'all');
 
     const filtered = window.currentInventoryData.filter(item => {
         // Permitir que si searchTerm está vacío, matchSearch sea automáticamente true
         const matchSearch = searchTerm === '' ? true : (
-            (item.ARTICULO && item.ARTICULO.toLowerCase().includes(searchTerm)) ||
-            (item.ACTIVO && String(item.ACTIVO).toLowerCase().includes(searchTerm))
+            (item.ARTICULO && normalizeString(item.ARTICULO).includes(searchTerm)) ||
+            (item.ACTIVO && normalizeString(item.ACTIVO).includes(searchTerm))
         );
 
         // El CSV tiene espacios finales en el Área a veces o nombres exactos como 'AUDIO'
-        const matchArea = filterArea === 'all' || (item.AREA && item.AREA.trim().toUpperCase() === filterArea.toUpperCase());
+        const matchArea = filterArea === 'ALL' || (item.AREA && normalizeString(item.AREA) === filterArea);
 
         return matchSearch && matchArea;
     });
