@@ -314,7 +314,8 @@ class DatabaseService {
             return { success: true, username: user.Username, rol: user.Rol || 'Usuario' };
         } catch (error) {
             console.error('[DB Service] Error en login:', error.message);
-            return { success: false, error: 'Error interno de autenticación' };
+            // PASAMOS EL ERROR REAL AL FRONTEND PARA IDENTIFICAR LA FALLA
+            return { success: false, error: 'Detalle: ' + error.message };
         }
     }
 
