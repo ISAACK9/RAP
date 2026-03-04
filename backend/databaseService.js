@@ -206,6 +206,44 @@ class DatabaseService {
     }
 
     /**
+     * REGISTRAR NUEVO EVENTO
+     * Guarda en historial múltiple y cambia estados masivamente
+     */
+    async registrarEvento(eventData) {
+        try {
+            const numEquipos = eventData.equiposAsignados.length;
+            console.log(`[DB Service] Registrando Evento '${eventData.nombre}' con ${numEquipos} equipos.`);
+
+            // Opcional: Escribir la "Cabecera" del Evento en una hoja de "Eventos" si existiera,
+            // pero para ser robustos, delegaremos la trazabilidad en "Historial" usando "EN EVENTO".
+
+            let successCount = 0;
+            // Registramos un movimiento general por cada equipo seleccionado
+            for (const codigo of eventData.equiposAsignados) {
+                const payload = {
+                    codigo: codigo,
+                    tipo: 'salida',
+                    usuario: 'Admin', // Idealment tomarlo de eventData.user si existe
+                    fecha: new Date().toISOString(),
+                    equipoNombre: eventData.nombre // Usamos equipoNombre para guardar el Nombre del Evento y visualizarlo en el Historial
+                };
+
+                const result = await this.registrarMovimiento(payload);
+                if (result.success) successCount++;
+            }
+
+            return {
+                success: true,
+                message: `Evento '${eventData.nombre}' creado. ${successCount}/${numEquipos} equipos asignados exitosamente.`
+            };
+
+        } catch (error) {
+            console.error('[DB Service] Error en registrarEvento:', error.message);
+            return { success: false, error: 'Ocurrió un error al procesar el grupo de equipos para el evento.' };
+        }
+    }
+
+    /**
      * OBTENER USUARIOS (Para el panel de administración)
      * Resuelve requerimiento "Para que el Administrador vea y edite roles"
      */

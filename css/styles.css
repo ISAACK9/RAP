@@ -493,6 +493,257 @@ button {
 }
 
 /* =========================================
+   DARK THEME MODAL (ADD EVENT)
+   ========================================= */
+.dark-modal {
+    background: #09090b;
+    /* Zinc-950 */
+    color: #fafafa;
+    border: 1px solid #27272a;
+    /* Zinc-800 */
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    border-radius: 20px;
+    width: 100%;
+    max-width: 600px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.dark-modal .modal-header {
+    padding: 1.5rem 2rem 1rem;
+    border-bottom: 1px solid #27272a;
+    margin-bottom: 0;
+}
+
+.dark-modal h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+}
+
+.dark-modal-body {
+    padding: 1.5rem 2rem;
+    overflow-y: auto;
+    /* Custom Scrollbar for Modal Body */
+    scrollbar-width: thin;
+    scrollbar-color: #3f3f46 transparent;
+}
+
+.dark-modal-body::-webkit-scrollbar {
+    width: 6px;
+}
+
+.dark-modal-body::-webkit-scrollbar-thumb {
+    background-color: #3f3f46;
+    border-radius: 10px;
+}
+
+/* Formulary Inputs in Dark Modal */
+.dark-input-group {
+    margin-bottom: 1.5rem;
+}
+
+.dark-label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #a1a1aa;
+    /* Zinc-400 */
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.5rem;
+}
+
+.dark-input {
+    width: 100%;
+    background-color: #18181b;
+    /* Zinc-900 */
+    border: 1px solid #27272a;
+    color: #fafafa;
+    padding: 0.75rem 1rem;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    transition: var(--transition-fast);
+}
+
+.dark-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.dark-input::placeholder {
+    color: #52525b;
+    /* Zinc-600 */
+}
+
+/* Responsables Grid */
+.responsables-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+@media (max-width: 480px) {
+    .responsables-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Equipment Filter Tabs (Add Event Modal) */
+.dept-tabs {
+    display: flex;
+    overflow-x: auto;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    scrollbar-width: none;
+}
+
+.dept-tabs::-webkit-scrollbar {
+    display: none;
+}
+
+.dept-tab {
+    white-space: nowrap;
+    color: #a1a1aa;
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 0.5rem 0;
+    border-bottom: 2px solid transparent;
+    transition: var(--transition-fast);
+}
+
+.dept-tab:hover {
+    color: #fafafa;
+}
+
+.dept-tab.active {
+    color: #fafafa;
+    border-bottom-color: #fafafa;
+}
+
+.dept-tab .count {
+    font-weight: 400;
+    color: #71717a;
+    font-size: 0.75rem;
+    margin-left: 0.25rem;
+}
+
+/* Checkbox Items */
+.equip-list-container {
+    background: #18181b;
+    border: 1px solid #27272a;
+    border-radius: 12px;
+    height: 300px;
+    overflow-y: auto;
+}
+
+.equip-list-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.equip-list-container::-webkit-scrollbar-thumb {
+    background-color: #3f3f46;
+    border-radius: 10px;
+}
+
+.equip-item-row {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #27272a;
+    transition: background 0.2s;
+    cursor: pointer;
+}
+
+.equip-item-row:hover {
+    background: #27272a;
+}
+
+.equip-item-row:last-child {
+    border-bottom: none;
+}
+
+.equip-checkbox {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    border: 2px solid #52525b;
+    border-radius: 6px;
+    margin-right: 1rem;
+    cursor: pointer;
+    position: relative;
+    transition: var(--transition-fast);
+    flex-shrink: 0;
+}
+
+.equip-checkbox:checked {
+    background-color: #3b82f6;
+    border-color: #3b82f6;
+}
+
+.equip-checkbox:checked::after {
+    content: '';
+    position: absolute;
+    left: 5px;
+    top: 1px;
+    width: 6px;
+    height: 12px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+.equip-details {
+    flex: 1;
+    min-width: 0;
+}
+
+.equip-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #fafafa;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.equip-meta {
+    font-size: 0.75rem;
+    color: #a1a1aa;
+}
+
+/* Search bar modal */
+.modal-search {
+    background: #18181b;
+    border: 1px solid #27272a;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    margin-bottom: 1rem;
+}
+
+.modal-search i {
+    color: #71717a;
+    font-size: 1.2rem;
+    margin-right: 0.5rem;
+}
+
+.modal-search input {
+    background: transparent;
+    border: none;
+    width: 100%;
+    color: #fafafa;
+    outline: none;
+    font-size: 0.9rem;
+}
+
+/* =========================================
    GLOBAL LOADER & TOAST
    ========================================= */
 .loader-overlay {

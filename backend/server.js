@@ -109,6 +109,16 @@ app.post('/api/action', async (req, res) => {
         return res.status(200).json(result);
     }
 
+    if (action === 'createEvent') {
+        const eventData = req.body;
+        // Inject user who created the event for audit logs
+        eventData.user = req.body.username || 'Admin';
+
+        const result = await databaseService.registrarEvento(eventData);
+        if (!result.success) return res.status(500).json(result);
+        return res.status(200).json(result);
+    }
+
     if (action === 'getUsers') {
         const result = await databaseService.obtenerUsuarios();
         if (!result.success) return res.status(500).json(result);

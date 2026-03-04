@@ -264,6 +264,120 @@
         </div>
     </div>
 
+    <!-- Modal Nuevo Evento (Dark Theme) -->
+    <div id="modal-evento" class="modal-overlay hidden">
+        <div class="dark-modal">
+            <div class="modal-header">
+                <h2>Nuevo Evento</h2>
+                <button class="icon-btn close-modal text-gray-400 hover:text-white border-transparent"><i
+                        class="material-icons-round">close</i></button>
+            </div>
+
+            <div class="dark-modal-body">
+                <form id="form-nuevo-evento" onsubmit="event.preventDefault(); window.guardarEvento();">
+
+                    <!-- Sección 1: Datos Generales -->
+                    <div class="dark-input-group">
+                        <label class="dark-label">Nombre del Evento *</label>
+                        <input type="text" id="ev-nombre" class="dark-input" placeholder="Ej. Festival Monterrey 2026"
+                            required>
+                    </div>
+
+                    <div class="dark-input-group">
+                        <label class="dark-label">Cliente *</label>
+                        <input type="text" id="ev-cliente" class="dark-input" placeholder="Nombre del cliente" required>
+                    </div>
+
+                    <div class="responsables-grid mb-4">
+                        <div class="dark-input-group mb-0">
+                            <label class="dark-label">Fecha Inicio *</label>
+                            <input type="date" id="ev-fecha-inicio" class="dark-input" required>
+                        </div>
+                        <div class="dark-input-group mb-0">
+                            <label class="dark-label">Fecha Fin *</label>
+                            <input type="date" id="ev-fecha-fin" class="dark-input" required>
+                        </div>
+                    </div>
+
+                    <hr class="border-gray-800 my-6">
+
+                    <!-- Sección 2: Responsables -->
+                    <h3 class="text-[0.75rem] font-bold text-yellow-500 uppercase tracking-wider mb-4">Responsables de
+                        Área</h3>
+
+                    <div class="responsables-grid">
+                        <div class="dark-input-group">
+                            <label class="dark-label">Audio</label>
+                            <input type="text" id="ev-resp-audio" class="dark-input" placeholder="Encargado">
+                        </div>
+                        <div class="dark-input-group">
+                            <label class="dark-label">Iluminación</label>
+                            <input type="text" id="ev-resp-ilum" class="dark-input" placeholder="Encargado">
+                        </div>
+                        <div class="dark-input-group">
+                            <label class="dark-label">Video</label>
+                            <input type="text" id="ev-resp-video" class="dark-input" placeholder="Encargado">
+                        </div>
+                        <div class="dark-input-group">
+                            <label class="dark-label">Rigging</label>
+                            <input type="text" id="ev-resp-rigging" class="dark-input" placeholder="Encargado">
+                        </div>
+                    </div>
+
+                    <div class="dark-input-group max-w-xs">
+                        <label class="dark-label">Bodega / Logística</label>
+                        <input type="text" id="ev-resp-bodega" class="dark-input" placeholder="Encargado General">
+                    </div>
+
+                    <hr class="border-gray-800 my-6">
+
+                    <!-- Sección 3: Equipos a Asignar -->
+                    <h3 class="text-[0.75rem] font-bold text-gray-300 uppercase tracking-wider mb-4">Equipos a Asignar
+                    </h3>
+
+                    <div class="dept-tabs">
+                        <button type="button" class="dept-tab active" onclick="window.setEquipDept('ALL', this)">Todos
+                            <span class="count" id="count-all">(0)</span></button>
+                        <button type="button" class="dept-tab" onclick="window.setEquipDept('AUDIO', this)">Audio <span
+                                class="count" id="count-audio">(0)</span></button>
+                        <button type="button" class="dept-tab"
+                            onclick="window.setEquipDept('ILUMINACION', this)">Iluminación <span class="count"
+                                id="count-iluminacion">(0)</span></button>
+                        <button type="button" class="dept-tab" onclick="window.setEquipDept('VIDEO', this)">Video <span
+                                class="count" id="count-video">(0)</span></button>
+                        <button type="button" class="dept-tab" onclick="window.setEquipDept('RIGGING', this)">Rigging
+                            <span class="count" id="count-rigging">(0)</span></button>
+                        <button type="button" class="dept-tab" onclick="window.setEquipDept('BODEGA', this)">Bodega
+                            <span class="count" id="count-bodega">(0)</span></button>
+                    </div>
+
+                    <div class="modal-search">
+                        <i class="material-icons-round">search</i>
+                        <input type="text" id="search-equip-modal" placeholder="Buscar equipo..."
+                            onkeyup="window.filterEquipModal()">
+                    </div>
+
+                    <div class="equip-list-container" id="equip-modal-list">
+                        <!-- Iterated dynamically via JS -->
+                        <div class="p-8 text-center text-gray-500 text-sm">Cargando equipos...</div>
+                    </div>
+
+                    <!-- Botón de Envío -->
+                    <div class="mt-6 flex justify-end gap-3 pt-4 border-t border-gray-800">
+                        <button type="button"
+                            class="px-6 py-2 rounded-full text-white hover:bg-white/10 font-medium transition-colors close-modal">Cancelar</button>
+                        <button type="submit" id="btn-submit-evento"
+                            class="px-6 py-2 rounded-full bg-blue-600 hover:bg-blue-500 text-white font-medium transition-colors shadow-lg shadow-blue-500/25 flex items-center gap-2">
+                            <span>Guardar Evento</span>
+                            <span class="bg-blue-800 text-xs px-2 py-0.5 rounded-full"
+                                id="evento-selected-count">0</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <script src="js/api.js" defer></script>

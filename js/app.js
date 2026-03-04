@@ -503,3 +503,190 @@ async function loadAdminPanel() {
 document.getElementById('btn-refresh-users')?.addEventListener('click', () => {
     loadAdminPanel();
 });
+
+
+// ==========================================
+// NUEVO EVENTO LOGIC (Modulo de Asignación)
+// ==========================================
+let currentEventSelection = new Set();
+let allAvailableEquipment = [];
+let currentEquipFilter = 'ALL';
+
+// Abrir Modal de Nuevo Evento
+document.querySelector('#view-events header button')?.addEventListener('click', async () => {
+    const modal = document.getElementById('modal-evento');
+    if (!modal) return;
+
+    // Reset Form & Selections
+    document.getElementById('form-nuevo-evento').reset();
+    currentEventSelection.clear();
+    currentEquipFilter = 'ALL';
+    document.getElementById('evento-selected-count').innerText = '0';
+    document.getElementById('search-equip-modal').value = '';
+
+    // Load fresh DB inventory
+    modal.classList.remove('hidden');
+    await loadAvailableEquipmentForModal();
+});
+
+// Helper for filtering tabs
+window.setEquipDept = function (deptLabel, btnElement) {
+    document.querySelectorAll('.dept-tab').forEach(b => b.classList.remove('active'));
+    if (btnElement) btnElement.classList.add('active');
+
+    currentEquipFilter = deptLabel;
+    renderEquipModalList();
+};
+
+window.filterEquipModal = function () {
+    renderEquipModalList();
+};
+
+async function loadAvailableEquipmentForModal() {
+    const container = document.getElementById('equip-modal-list');
+    container.innerHTML = '<div class="p-8 text-center text-gray-500 text-sm"><div class="animate-pulse">Cargando inventario disponible...</div></div>';
+
+    try {
+        const response = await LocalDriveSync.getFromLocalDB('Inventory_Items');
+        if (response && response.success) {
+            // Guardamos solo los disponibles
+            allAvailableEquipment = response.items.filter(item => {
+                const estado = String(item.Estado || 'Disponible').trim().toLowerCase();
+                return estado === 'disponible' || estado === '';
+            });
+            updateEquipCounters();
+            renderEquipModalList();
+        } else {
+            container.innerHTML = '<div class="p-8 text-center text-red-500 text-sm">Error al cargar la base de datos local. Sincronice primero.</div>';
+        }
+    } catch (e) {
+        console.error("Load Modal Error:", e);
+        container.innerHTML = '<div class="p-8 text-center text-red-500 text-sm">Error interno de BD.</div>';
+    }
+}
+
+function updateEquipCounters() {
+    const normalize = str => String(str).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
+
+    const count = { ALL: allAvailableEquipment.length, AUDIO: 0, ILUMINACION: 0, VIDEO: 0, RIGGING: 0, BODEGA: 0 };
+
+    allAvailableEquipment.forEach(item => {
+        const d = normalize(item.AREA || '');
+        if (count[d] !== undefined) count[d]++;
+    });
+
+    document.getElementById('count-all').innerText = `(${count.ALL})`;
+    document.getElementById('count-audio').innerText = `(${count.AUDIO})`;
+    document.getElementById('count-iluminacion').innerText = `(${count.ILUMINACION})`;
+    document.getElementById('count-video').innerText = `(${count.VIDEO})`;
+    document.getElementById('count-rigging').innerText = `(${count.RIGGING})`;
+    document.getElementById('count-bodega').innerText = `(${count.BODEGA})`;
+}
+
+function renderEquipModalList() {
+    const container = document.getElementById('equip-modal-list');
+    const normalize = str => String(str).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
+
+    const searchTerm = normalize(document.getElementById('search-equip-modal')?.value || '');
+
+    const filtered = allAvailableEquipment.filter(item => {
+        const matchDept = currentEquipFilter === 'ALL' || normalize(item.AREA || '') === currentEquipFilter;
+        const matchSearch = searchTerm === '' || normalize(item.ARTICULO || '').includes(searchTerm) || normalize(item.ACTIVO || '').includes(searchTerm);
+        return matchDept && matchSearch;
+    });
+
+    if (filtered.length === 0) {
+        container.innerHTML = `<div class="p-8 text-center text-gray-500 text-sm">No se encontraron equipos disponibles en ${currentEquipFilter}</div>`;
+        return;
+    }
+
+    container.innerHTML = '';
+
+    // Virtual render or simple loop (if < 1000 items, DOM is fine)
+    filtered.forEach(item => {
+        const isChecked = currentEventSelection.has(item.ACTIVO);
+
+        const row = document.createElement('label');
+        row.className = 'equip-item-row';
+        row.innerHTML = `
+            <input type="checkbox" class="equip-checkbox" value="${item.ACTIVO}" ${isChecked ? 'checked' : ''}>
+            <div class="equip-details">
+                <div class="equip-name">${item.ARTICULO || 'Sin Nombre'}</div>
+                <div class="equip-meta">#${item.ACTIVO} • ${item.MARCA || ''} ${item.MODELO || ''}</div>
+            </div>
+        `;
+
+        const cb = row.querySelector('.equip-checkbox');
+        cb.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                currentEventSelection.add(item.ACTIVO);
+            } else {
+                currentEventSelection.delete(item.ACTIVO);
+            }
+            document.getElementById('evento-selected-count').innerText = currentEventSelection.size;
+        });
+
+        container.appendChild(row);
+    });
+}
+
+window.guardarEvento = async function () {
+    if (currentEventSelection.size === 0) {
+        UI.showToast("Debes seleccionar al menos 1 equipo para el evento", "error");
+        return;
+    }
+
+    const eventData = {
+        nombre: document.getElementById('ev-nombre').value.trim(),
+        cliente: document.getElementById('ev-cliente').value.trim(),
+        fechaInicio: document.getElementById('ev-fecha-inicio').value,
+        fechaFin: document.getElementById('ev-fecha-fin').value,
+        responsables: {
+            audio: document.getElementById('ev-resp-audio').value.trim(),
+            iluminacion: document.getElementById('ev-resp-ilum').value.trim(),
+            video: document.getElementById('ev-resp-video').value.trim(),
+            rigging: document.getElementById('ev-resp-rigging').value.trim(),
+            bodega: document.getElementById('ev-resp-bodega').value.trim()
+        },
+        equiposAsignados: Array.from(currentEventSelection) // Arreglo de Códigos ACTIVOS
+    };
+
+    console.log("Saving Event Data:", eventData);
+
+    // TODO: Send to backend /api/action -> processEventCreation
+    // For now simulate logic...
+    const btnSubmit = document.getElementById('btn-submit-evento');
+    const originalText = btnSubmit.innerHTML;
+    btnSubmit.innerHTML = `<i class="material-icons-round spin-animation">sync</i> Guardando...`;
+    btnSubmit.disabled = true;
+
+    try {
+        const username = AuthState?.user?.username || 'UsuarioLocal';
+        const payload = { action: 'createEvent', username: username, ...eventData };
+
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            UI.showToast(data.message || "Evento guardado con éxito", "success");
+            // Limpiar Modal
+            document.getElementById('modal-evento').classList.add('hidden');
+            // Cargar nueva lista de eventos si estuviéramos en la vista
+            if (typeof loadEvents === 'function') loadEvents();
+        } else {
+            throw new Error(data.error || 'Server error');
+        }
+
+    } catch (e) {
+        console.error("Save Event Error:", e);
+        UI.showToast(`Error al guardar evento: ${e.message}`, "error");
+    } finally {
+        btnSubmit.innerHTML = originalText;
+        btnSubmit.disabled = false;
+    }
+};
