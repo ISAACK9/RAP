@@ -261,7 +261,8 @@ class DatabaseService {
             };
         } catch (error) {
             console.error('[DB Service] Error en obtenerUsuarios:', error.message);
-            return { success: false, items: [], error: 'Error obteniendo lista de usuarios.' };
+            // PASAMOS EL ERROR REAL DE GOOGLE
+            return { success: false, items: [], error: error.message };
         }
     }
 
@@ -299,7 +300,7 @@ class DatabaseService {
     async loginUsuario(username, password) {
         try {
             const usersResp = await this.obtenerUsuarios();
-            if (!usersResp.success) throw new Error("No se pudo leer la base de datos");
+            if (!usersResp.success) throw new Error(usersResp.error || "No se pudo leer la base de datos");
 
             const user = usersResp.items.find(u => String(u.Username) === String(username));
 
