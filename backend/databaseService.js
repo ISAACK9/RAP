@@ -25,7 +25,8 @@ if (process.env.GOOGLE_CREDENTIALS_JSON) {
 }
 
 const sheets = google.sheets({ version: 'v4', auth });
-const SPREADSHEET_ID = process.env.SPREADSHEET_ID;
+// Usa la variable de entorno, y si falta o estamos en Vercel sin configurar, usa el ID "Audio" como central:
+const SPREADSHEET_ID = process.env.SPREADSHEET_ID || '12RufVKNKNtGH7dEhDvYbc0fmFX6EyVyh';
 
 class DatabaseService {
 
