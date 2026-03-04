@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Test CSV Download</title>
+</head>
+
+<body>
+    <h1>Testing Google Sheets CSV Export</h1>
+    <pre id="output">Loading...</pre>
+
+    <script>
+        async function test() {
+            const url = "https://docs.google.com/spreadsheets/d/12RufVKNKNtGH7dEhDvYbc0fmFX6EyVyh/export?format=csv";
+
+            try {
+                document.getElementById('output').innerText = "Fetching " + url + "...";
+                const res = await fetch(url);
+                if (!res.ok) throw new Error("Status: " + res.status);
+                const text = await res.text();
+                document.getElementById('output').innerText = "SUCCESS! Got " + text.length + " bytes.\\n\\n" + text.substring(0, 500);
+            } catch (e) {
+                document.getElementById('output').innerText = "ERROR: " + e.message + "\\n\\nTry with Proxy...";
+
+                // Fallback test
+                try {
+                    const proxyUrl = "https://api.allorigins.win/raw?url=" + encodeURIComponent(url);
+                    const res2 = await fetch(proxyUrl);
+                    if (!res2.ok) throw new Error("Proxy Status: " + res2.status);
+                    const text2 = await res2.text();
+                    document.getElementById('output').innerText += "\\n\\nPROXY SUCCESS! Got " + text2.length + " bytes.\\n\\n" + text2.substring(0, 500);
+                } catch (e2) {
+                    document.getElementById('output').innerText += "\\n\\nPROXY ERROR: " + e2.message;
+                }
+            }
+        }
+        test();
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Control de Inventarios</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body>
+    <!-- Global Loading Overlay -->
+    <div id="global-loader" class="loader-overlay hidden">
+        <div class="spinner"></div>
+        <p>Procesando...</p>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <div class="app-container">
+        <!-- Sidebar (Desktop) / Bottom Nav (Mobile) -->
+        <nav class="main-nav">
+            <div class="nav-header">
+                <i class="material-icons-round">inventory_2</i>
+                <span>Inventario<br><small>Pro</small></span>
+            </div>
+            <ul class="nav-links">
+                <li><a href="#" data-route="home" class="active"><i
+                            class="material-icons-round">dashboard</i><span>Inicio</span></a></li>
+                <li><a href="#" data-route="inventory"><i
+                            class="material-icons-round">list_alt</i><span>Inventario</span></a></li>
+                <li><a href="#" data-route="events"><i
+                            class="material-icons-round">event_note</i><span>Eventos</span></a></li>
+                <li><a href="#" data-route="history"><i
+                            class="material-icons-round">history</i><span>Historial</span></a></li>
+            </ul>
+            <div class="nav-footer">
+                <div class="user-info" id="current-user-info">
+                    <i class="material-icons-round">account_circle</i>
+                    <span id="user-name-display">Invitado</span>
+                </div>
+                <!-- Sincronización Indicator Sutil -->
+                <div id="sync-status" class="sync-indicator offline" title="Estado de sincronización">
+                    <i class="material-icons-round">cloud_off</i>
+                    <span>Sin conexión</span>
+                </div>
+                <button id="btn-logout" class="icon-btn hidden" title="Cerrar Sesión"><i
+                        class="material-icons-round">logout</i></button>
+                <button id="btn-login-modal" class="icon-btn" title="Iniciar Sesión"><i
+                        class="material-icons-round">login</i></button>
+            </div>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="content-area">
+
+            <!-- Vistas -->
+            <section id="view-home" class="view active px-4 md:px-8 py-6">
+                <header class="flex justify-between items-center mb-8">
+                    <h1 class="text-2xl font-bold text-gray-800 tracking-tight">Inicio</h1>
+                    <button
+                        class="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-2xl shadow-lg shadow-blue-500/30 transition-all hover:scale-105 active:scale-95"
+                        title="Escanear Código" id="btn-scan-main">
+                        <i class="material-icons-round">qr_code_scanner</i>
+                    </button>
+                </header>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+                    <div
+                        class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-center gap-4 transition-transform hover:-translate-y-1">
+                        <div class="bg-blue-50 text-blue-600 p-3 rounded-xl"><i
+                                class="material-icons-round text-2xl">devices</i></div>
+                        <div>
+                            <p class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">Total Equipos
+                            </p>
+                            <p id="stat-total-equipos" class="text-3xl font-bold text-gray-900 leading-none">--</p>
+                        </div>
+                    </div>
+                    <div
+                        class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-center gap-4 transition-transform hover:-translate-y-1">
+                        <div class="bg-amber-50 text-amber-500 p-3 rounded-xl"><i
+                                class="material-icons-round text-2xl">warning</i></div>
+                        <div>
+                            <p class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">En Préstamo
+                            </p>
+                            <p id="stat-prestamo" class="text-3xl font-bold text-gray-900 leading-none">--</p>
+                        </div>
+                    </div>
+                    <div
+                        class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-center gap-4 transition-transform hover:-translate-y-1">
+                        <div class="bg-green-50 text-green-500 p-3 rounded-xl"><i
+                                class="material-icons-round text-2xl">check_circle</i></div>
+                        <div>
+                            <p class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">Disponibles
+                            </p>
+                            <p id="stat-disponibles" class="text-3xl font-bold text-gray-900 leading-none">--</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
+                    <h2 class="text-lg font-bold text-gray-800 mb-5">Últimos Movimientos</h2>
+                    <ul id="recent-movements-list" class="space-y-3">
+                        <li class="skeleton-item animate-pulse h-16 bg-gray-50 rounded-xl"></li>
+                        <li class="skeleton-item animate-pulse h-16 bg-gray-50 rounded-xl"></li>
+                        <li class="skeleton-item animate-pulse h-16 bg-gray-50 rounded-xl"></li>
+                    </ul>
+                </div>
+            </section>
+
+            <section id="view-inventory" class="view hidden px-4 md:px-8 py-6">
+                <header class="mb-6">
+                    <div class="flex justify-between items-center mb-5">
+                        <h1 class="text-2xl font-bold text-gray-800 tracking-tight">Inventario</h1>
+                        <div class="flex gap-2">
+                            <button
+                                class="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors shrink-0"
+                                id="btn-sync-inventory" title="Sincronizar ahora"><i
+                                    class="material-icons-round">sync</i></button>
+                            <button
+                                class="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors shrink-0"
+                                id="btn-filter-inventory" title="Filtros"><i
+                                    class="material-icons-round">filter_list</i></button>
+                        </div>
+                    </div>
+
+                    <div class="relative mb-5">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <i class="material-icons-round text-gray-400">search</i>
+                        </div>
+                        <input type="text" id="search-inventory"
+                            class="block w-full pl-12 pr-4 py-3.5 border border-gray-200 rounded-2xl leading-5 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-all shadow-sm"
+                            placeholder="Buscar equipo por nombre o código...">
+                    </div>
+
+                    <div class="flex overflow-x-auto gap-2 pb-2 no-scrollbar filter-chips">
+                        <button
+                            class="whitespace-nowrap px-4 py-2 flex-shrink-0 rounded-full bg-gray-900 text-white text-sm font-medium shadow-sm chip active"
+                            data-filter="all">Todos</button>
+                        <button
+                            class="whitespace-nowrap px-4 py-2 flex-shrink-0 rounded-full bg-white border border-gray-200 text-gray-700 text-sm font-medium hover:bg-gray-50 transition chip"
+                            data-filter="1.A AUDIO">Audio</button>
+                        <button
+                            class="whitespace-nowrap px-4 py-2 flex-shrink-0 rounded-full bg-white border border-gray-200 text-gray-700 text-sm font-medium hover:bg-gray-50 transition chip"
+                            data-filter="2.B BODEGA">Bodega</button>
+                        <button
+                            class="whitespace-nowrap px-4 py-2 flex-shrink-0 rounded-full bg-white border border-gray-200 text-gray-700 text-sm font-medium hover:bg-gray-50 transition chip"
+                            data-filter="3.I ILUMINACION">Iluminación</button>
+                        <button
+                            class="whitespace-nowrap px-4 py-2 flex-shrink-0 rounded-full bg-white border border-gray-200 text-gray-700 text-sm font-medium hover:bg-gray-50 transition chip"
+                            data-filter="4.R RIGGING">Rigging</button>
+                        <button
+                            class="whitespace-nowrap px-4 py-2 flex-shrink-0 rounded-full bg-white border border-gray-200 text-gray-700 text-sm font-medium hover:bg-gray-50 transition chip"
+                            data-filter="5.V VIDEO">Video</button>
+                    </div>
+                </header>
+                <div class="lists-container">
+                    <ul id="inventory-list" class="space-y-3 pb-8">
+                        <!-- Items cargados dinámicamente -->
+                    </ul>
+                </div>
+            </section>
+
+            <section id="view-events" class="view hidden px-4 md:px-8 py-6">
+                <header class="flex justify-between items-center mb-6">
+                    <h1 class="text-2xl font-bold text-gray-800 tracking-tight">Eventos</h1>
+                    <button
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-1 shadow-md transition-transform hover:-translate-y-0.5"
+                        id="btn-add-event">
+                        <i class="material-icons-round text-sm">add</i> Nuevo
+                    </button>
+                </header>
+                <div class="lists-container bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
+                    <ul id="events-list" class="space-y-4">
+                        <!-- Eventos dinámicos -->
+                    </ul>
+                </div>
+            </section>
+
+            <section id="view-history" class="view hidden px-4 md:px-8 py-6">
+                <header class="flex justify-between items-center mb-6">
+                    <h1 class="text-2xl font-bold text-gray-800 tracking-tight">Historial</h1>
+                    <button
+                        class="p-2 bg-white border border-gray-200 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all shadow-sm flex items-center justify-center"
+                        id="btn-refresh-history" title="Actualizar">
+                        <i class="material-icons-round">refresh</i>
+                    </button>
+                </header>
+                <div class="bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100">
+                    <ul id="history-list" class="divide-y divide-gray-50">
+                        <!-- Historial dinámico -->
+                    </ul>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Modales -->
+
+    <!-- Modal Scanner -->
+    <div id="modal-scanner" class="modal-overlay hidden">
+        <div class="modal-content glass-panel">
+            <div class="modal-header">
+                <h2>Escáner</h2>
+                <button class="icon-btn close-modal"><i class="material-icons-round">close</i></button>
+            </div>
+            <div class="modal-body">
+                <div id="reader"></div>
+                <div class="scanner-actions">
+                    <button id="btn-manual-entry" class="btn-secondary">Ingreso Manual</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <script src="js/api.js" defer></script>
+    <script src="js/driveLinkSync.js" defer></script>
+    <script src="js/auth.js" defer></script>
+    <script src="js/scanner.js" defer></script>
+    <script src="js/app.js" defer></script>
+</body>
+
+</html>
