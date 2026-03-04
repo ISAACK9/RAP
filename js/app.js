@@ -17,7 +17,7 @@ function bindMainEvents() {
     }
 
     // Basic search functionality for inventory
-    document.getElementById('search-inventory')?.addEventListener('input', applyInventoryFilters);
+    document.getElementById('search-inventory')?.addEventListener('input', debouncedApplyFilters);
 }
 
 // Listen for background updates purely driven by DB service
@@ -201,6 +201,26 @@ async function loadInventory() {
     }
 }
 
+// Add Debounce Utility
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// Envuelto para el uso en el search
+const debouncedApplyFilters = debounce(function () {
+    applyInventoryFilters();
+}, 300);
+
+let currentInventoryRenderLimit = 100;
+
 function applyInventoryFilters() {
     if (!window.currentInventoryData) return;
 
@@ -224,6 +244,8 @@ function applyInventoryFilters() {
         return matchSearch && matchArea;
     });
 
+    // Reset pagination on new filter
+    currentInventoryRenderLimit = 100;
     renderInventory(filtered);
 }
 
@@ -236,7 +258,10 @@ function renderInventory(items) {
         return;
     }
 
-    items.forEach(item => {
+    // Optimization: Render items up to the limit
+    const itemsToRender = items.slice(0, currentInventoryRenderLimit);
+
+    itemsToRender.forEach(item => {
         const li = document.createElement('li');
         li.className = "bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex flex-col sm:flex-row sm:justify-between sm:align-start gap-4 hover:shadow-md transition-all hover:-translate-y-0.5 cursor-pointer relative overflow-hidden";
 
@@ -265,6 +290,18 @@ function renderInventory(items) {
         `;
         list.appendChild(li);
     });
+
+    // Check if we need to show a "Load More" button
+    if (items.length > currentInventoryRenderLimit) {
+        const loadMoreLi = document.createElement('li');
+        loadMoreLi.className = "text-center py-4 bg-gray-50 rounded-2xl border border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors";
+        loadMoreLi.innerHTML = `<span class="text-blue-600 font-bold text-sm">Mostrando ${currentInventoryRenderLimit} de ${items.length}. Cargar más equipos...</span>`;
+        loadMoreLi.onclick = () => {
+            currentInventoryRenderLimit += 100;
+            renderInventory(items); // re-render with new limit
+        };
+        list.appendChild(loadMoreLi);
+    }
 }
 
 // Basic search functionality for inventory logic moved to bindMainEvents
@@ -529,18 +566,22 @@ document.querySelector('#view-events header button')?.addEventListener('click', 
     await loadAvailableEquipmentForModal();
 });
 
+let currentModalRenderLimit = 100;
+
 // Helper for filtering tabs
 window.setEquipDept = function (deptLabel, btnElement) {
     document.querySelectorAll('.dept-tab').forEach(b => b.classList.remove('active'));
     if (btnElement) btnElement.classList.add('active');
 
     currentEquipFilter = deptLabel;
+    currentModalRenderLimit = 100; // Reset limite
     renderEquipModalList();
 };
 
-window.filterEquipModal = function () {
+window.filterEquipModal = debounce(function () {
+    currentModalRenderLimit = 100; // Reset limite
     renderEquipModalList();
-};
+}, 300);
 
 async function loadAvailableEquipmentForModal() {
     const container = document.getElementById('equip-modal-list');
@@ -602,8 +643,10 @@ function renderEquipModalList() {
 
     container.innerHTML = '';
 
-    // Virtual render or simple loop (if < 1000 items, DOM is fine)
-    filtered.forEach(item => {
+    // Optimization: limit DOM creation
+    const itemsToRender = filtered.slice(0, currentModalRenderLimit);
+
+    itemsToRender.forEach(item => {
         const isChecked = currentEventSelection.has(item.ACTIVO);
 
         const row = document.createElement('label');
@@ -628,6 +671,18 @@ function renderEquipModalList() {
 
         container.appendChild(row);
     });
+
+    // Check if we need to show a "Load More" button in modal
+    if (filtered.length > currentModalRenderLimit) {
+        const loadMoreRow = document.createElement('div');
+        loadMoreRow.className = "p-4 mt-2 text-center text-blue-500 font-bold text-sm cursor-pointer hover:bg-gray-800 rounded-lg transition-colors border border-gray-700";
+        loadMoreRow.innerHTML = `Mostrando ${currentModalRenderLimit} de ${filtered.length}. Cargar más...`;
+        loadMoreRow.onclick = () => {
+            currentModalRenderLimit += 100;
+            renderEquipModalList();
+        };
+        container.appendChild(loadMoreRow);
+    }
 }
 
 window.guardarEvento = async function () {
