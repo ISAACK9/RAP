@@ -245,7 +245,6 @@ class DatabaseService {
 
     /**
      * OBTENER USUARIOS (Para el panel de administración)
-     * Resuelve requerimiento "Para que el Administrador vea y edite roles"
      */
     async obtenerUsuarios() {
         try {
@@ -263,6 +262,89 @@ class DatabaseService {
         } catch (error) {
             console.error('[DB Service] Error en obtenerUsuarios:', error.message);
             return { success: false, items: [], error: 'Error obteniendo lista de usuarios.' };
+        }
+    }
+
+    /**
+     * REGISTRAR NUEVO USUARIO
+     */
+    async registrarUsuario(username, password) {
+        try {
+            // Verificar si existe
+            const usersResp = await this.obtenerUsuarios();
+            if (usersResp.success && usersResp.items.some(u => String(u.Username).toLowerCase() === String(username).toLowerCase())) {
+                return { success: false, error: 'El usuario ya existe.' };
+            }
+
+            // Defaults: Rol 'Usuario'
+            const newRow = [new Date().toISOString(), username, password, 'Usuario'];
+
+            await sheets.spreadsheets.values.append({
+                spreadsheetId: SPREADSHEET_ID,
+                range: 'Usuarios!A:D',
+                valueInputOption: 'USER_ENTERED',
+                resource: { values: [newRow] }
+            });
+
+            return { success: true, message: `Usuario ${username} creado exitosamente.` };
+        } catch (error) {
+            console.error('[DB Service] Error al registrar usuario:', error.message);
+            return { success: false, error: 'Ocurrió un error al registrar la cuenta.' };
+        }
+    }
+
+    /**
+     * LOGIN DE USUARIO
+     */
+    async loginUsuario(username, password) {
+        try {
+            const usersResp = await this.obtenerUsuarios();
+            if (!usersResp.success) throw new Error("No se pudo leer la base de datos");
+
+            const user = usersResp.items.find(u => String(u.Username) === String(username));
+
+            if (!user) {
+                return { success: false, error: 'Usuario no encontrado.' };
+            }
+
+            if (String(user.Password) !== String(password)) {
+                return { success: false, error: 'Contraseña incorrecta.' };
+            }
+
+            return { success: true, username: user.Username, rol: user.Rol || 'Usuario' };
+        } catch (error) {
+            console.error('[DB Service] Error en login:', error.message);
+            return { success: false, error: 'Error interno de autenticación' };
+        }
+    }
+
+    /**
+     * AUTO-SEED MASTER ADMIN (Auto-creación del dueño)
+     */
+    async seedMasterAdmin() {
+        try {
+            console.log("[DB Service] Verificando cuenta Master Admin...");
+            const usersResp = await this.obtenerUsuarios();
+
+            // Si falla la lectura o la tabla está vacía y da error de formato inicial, intentemos forzar encabezados
+            if (usersResp.success) {
+                const isaacExists = usersResp.items.some(u => String(u.Username).toUpperCase() === 'ISAAC');
+                if (!isaacExists) {
+                    console.log("[DB Service] Creando cuenta Master (ISAAC)...");
+                    const newRow = [new Date().toISOString(), 'ISAAC', 'CONTRERAS9', 'Administrador'];
+                    await sheets.spreadsheets.values.append({
+                        spreadsheetId: SPREADSHEET_ID,
+                        range: 'Usuarios!A:D',
+                        valueInputOption: 'USER_ENTERED',
+                        resource: { values: [newRow] }
+                    });
+                    console.log("[DB Service] Cuenta Master creada exitosamente.");
+                } else {
+                    console.log("[DB Service] Cuenta Master ya existe.");
+                }
+            }
+        } catch (e) {
+            console.error("[DB Service] Error en SeedMasterAdmin:", e.message);
         }
     }
 

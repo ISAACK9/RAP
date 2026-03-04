@@ -125,6 +125,25 @@ app.post('/api/action', async (req, res) => {
         return res.status(200).json(result);
     }
 
+    // --- AUTENTICACIÓN ---
+    if (action === 'loginUsuario') {
+        const { username, password } = req.body;
+        if (!username || !password) return res.status(400).json({ success: false, error: 'Faltan credenciales' });
+
+        const result = await databaseService.loginUsuario(username, password);
+        if (!result.success) return res.status(401).json(result); // Unauthorized
+        return res.status(200).json(result);
+    }
+
+    if (action === 'registrarUsuario') {
+        const { username, password } = req.body;
+        if (!username || !password) return res.status(400).json({ success: false, error: 'Faltan credenciales' });
+
+        const result = await databaseService.registrarUsuario(username, password);
+        if (!result.success) return res.status(400).json(result);
+        return res.status(200).json(result);
+    }
+
     // Si es un comando de Mock como getDashboardStats
     if (action === 'getDashboardStats') {
         return res.status(200).json({
@@ -168,9 +187,12 @@ app.get('/api/proxy-csv', async (req, res) => {
 });
 
 // Iniciar Servidor
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
     console.log(`========================================`);
     console.log(`🚀 Inventory Backend API Corriendo!`);
     console.log(`📡 Escuchando en http://localhost:${PORT}`);
     console.log(`========================================`);
+
+    // Auto-create Master Admin if not exists
+    await databaseService.seedMasterAdmin();
 });

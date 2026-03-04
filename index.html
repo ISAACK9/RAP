@@ -76,6 +76,69 @@
         <!-- Main Content Area -->
         <main class="content-area">
 
+            <!-- VISTA AUTH / LOGIN -->
+            <section id="view-login" class="view active px-4 md:px-8 py-6 aether-bg"
+                style="background-color: #050505; min-height: 100%; display: flex; align-items: center; justify-content: center;">
+                <div class="auth-box w-full max-w-md">
+                    <div class="text-center mb-8">
+                        <div
+                            class="inline-flex items-center justify-center p-3 rounded-2xl bg-gray-900 border border-gray-800 mb-4 shadow-[0_0_30px_rgba(16,185,129,0.1)]">
+                            <i class="material-icons-round text-emerald-500 text-4xl">security</i>
+                        </div>
+                        <h1 class="text-2xl font-bold text-white tracking-tight">Acceso Restringido</h1>
+                        <p class="text-sm text-gray-500 mt-2">Identifícate para entrar al sistema</p>
+                    </div>
+
+                    <div class="auth-tabs flex gap-2 w-full mb-6">
+                        <button
+                            class="flex-1 py-2 text-sm font-bold text-white border-b-2 border-emerald-500 auth-tab active"
+                            data-target="form-login">INICIAR SESIÓN</button>
+                        <button
+                            class="flex-1 py-2 text-sm font-bold text-gray-500 border-b-2 border-transparent auth-tab hover:text-gray-300 transition-colors"
+                            data-target="form-register">REGISTRARSE</button>
+                    </div>
+
+                    <form id="form-login" class="auth-form flex flex-col gap-4">
+                        <div>
+                            <label
+                                class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Usuario</label>
+                            <input type="text" id="login-user" required
+                                class="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all placeholder-gray-600"
+                                placeholder="Ej. ISAAC">
+                        </div>
+                        <div>
+                            <label
+                                class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Contraseña</label>
+                            <input type="password" id="login-pass" required
+                                class="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all placeholder-gray-600"
+                                placeholder="••••••••">
+                        </div>
+                        <button type="submit" id="btn-submit-login"
+                            class="w-full mt-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-4 rounded-xl transition-all hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50">ENTRAR</button>
+                    </form>
+
+                    <form id="form-register" class="auth-form flex flex-col gap-4 hidden">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Nuevo
+                                Usuario</label>
+                            <input type="text" id="reg-user" required
+                                class="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all placeholder-gray-600"
+                                placeholder="Escribe tu username">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Crear
+                                Contraseña</label>
+                            <input type="password" id="reg-pass" required
+                                class="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all placeholder-gray-600"
+                                placeholder="••••••••">
+                        </div>
+                        <button type="submit" id="btn-submit-reg"
+                            class="w-full mt-2 bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-4 rounded-xl transition-all hover:shadow-[0_0_20px_rgba(59,130,246,0.3)] hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50">CREAR
+                            CUENTA</button>
+                    </form>
+                </div>
+            </section>
+
             <!-- Vistas -->
             <section id="view-home" class="view active px-4 md:px-8 py-6 aether-bg"
                 style="background-color: #050505; min-height: 100%;">

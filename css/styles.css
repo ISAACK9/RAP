@@ -829,8 +829,34 @@ button {
 }
 
 /* =========================================
-   AETHER PRIME THEME (DASHBOARD)
+   AETHER PRIME THEME (DASHBOARD & AUTH)
    ========================================= */
+.auth-box {
+    animation: fadeInScale 0.4s ease-out;
+}
+
+@keyframes fadeInScale {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.auth-tab {
+    transition: all 0.3s ease;
+}
+
+.auth-tab.active {
+    border-bottom: 2px solid #10b981;
+    /* emerald-500 */
+    color: #fff;
+}
+
 .aether-bg {
     background-color: #000000;
 }

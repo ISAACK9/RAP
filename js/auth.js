@@ -1,4 +1,4 @@
-// Auth.js - Basic Role Based Access Control stub & user state management
+// Auth.js - Functional Role Based Access Control & Authentication Flow
 
 const AuthState = {
     user: null, // { username, role }
@@ -6,7 +6,6 @@ const AuthState = {
 };
 
 function checkAuth() {
-    // Check local storage for session
     const stored = localStorage.getItem('inventory_user');
     if (stored) {
         try {
@@ -17,24 +16,38 @@ function checkAuth() {
             console.error("Auth state error", e);
         }
     } else {
-        // Default to a guest or force login (here we just show guest)
         updateAuthUI();
     }
 }
 
 function updateAuthUI() {
     const nameDisplay = document.getElementById('user-name-display');
-    const loginBtn = document.getElementById('btn-login-modal');
     const logoutBtn = document.getElementById('btn-logout');
     const adminNavItem = document.getElementById('nav-item-admin');
     const syncBtn = document.getElementById('btn-sync-inventory');
 
+    // Core Layout Sections
+    const navBar = document.querySelector('.main-nav');
+    const loginView = document.getElementById('view-login');
+    const homeView = document.getElementById('view-home');
+
     if (AuthState.isLoggedIn && AuthState.user) {
+        // Logged In State
         if (nameDisplay) nameDisplay.innerText = `${AuthState.user.username} (${AuthState.user.role})`;
-        if (loginBtn) loginBtn.classList.add('hidden');
         if (logoutBtn) logoutBtn.classList.remove('hidden');
 
-        // Show/Hide Admin specific controls
+        // Reveal the App, Hide Login
+        if (navBar) navBar.style.display = 'flex';
+        if (loginView) loginView.classList.remove('active', 'flex');
+        if (loginView) loginView.classList.add('hidden');
+
+        // Default route to Home if coming from login
+        if (homeView && !document.querySelector('.view.active:not(#view-login)')) {
+            homeView.classList.add('active');
+            homeView.classList.remove('hidden');
+        }
+
+        // Apply RBAC
         if (isAdmin()) {
             if (adminNavItem) adminNavItem.classList.remove('hidden');
             if (syncBtn) syncBtn.classList.remove('hidden');
@@ -43,46 +56,131 @@ function updateAuthUI() {
             if (syncBtn) syncBtn.classList.add('hidden');
         }
     } else {
-        if (nameDisplay) nameDisplay.innerText = "Invitado";
-        if (loginBtn) loginBtn.classList.remove('hidden');
-        if (logoutBtn) logoutBtn.classList.add('hidden');
-        if (adminNavItem) adminNavItem.classList.add('hidden');
-        if (syncBtn) syncBtn.classList.add('hidden'); // Guests shouldn't sync
+        // Logged Out State -> Force Login View
+        if (navBar) navBar.style.display = 'none';
+
+        // Hide all other views
+        document.querySelectorAll('.view').forEach(v => {
+            v.classList.remove('active');
+            v.classList.add('hidden');
+        });
+
+        // Show strictly Login
+        if (loginView) {
+            loginView.classList.remove('hidden');
+            loginView.classList.add('active');
+            loginView.style.display = 'flex'; // For centering
+        }
     }
 }
 
-function login(username, role = 'Usuario') {
-    AuthState.user = { username, role };
-    AuthState.isLoggedIn = true;
-    localStorage.setItem('inventory_user', JSON.stringify(AuthState.user));
-    updateAuthUI();
-    UI.showToast(`Bienvenido, ${username}`);
+// ---------------------------------------------------------
+// NEW API DRIVEN AUTH METHODS
+// ---------------------------------------------------------
+
+async function performAuthAction(action, username, password) {
+    try {
+        const payload = { action: action, username, password };
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+        return data;
+    } catch (e) {
+        console.error(`Auth Error [${action}]:`, e);
+        return { success: false, error: "Error de conexión con el servidor" };
+    }
 }
 
-function logout() {
-    AuthState.user = null;
-    AuthState.isLoggedIn = false;
-    localStorage.removeItem('inventory_user');
-    updateAuthUI();
-    UI.showToast("Sesión cerrada");
-}
+// Event Listeners for HTML Forms
+document.addEventListener('DOMContentLoaded', () => {
+    checkAuth();
 
-document.getElementById('btn-logout')?.addEventListener('click', logout);
+    // Toggle Tabs
+    document.querySelectorAll('.auth-tab').forEach(tab => {
+        tab.addEventListener('click', (e) => {
+            document.querySelectorAll('.auth-tab').forEach(t => {
+                t.classList.remove('border-emerald-500', 'text-white');
+                t.classList.add('border-transparent', 'text-gray-500');
+            });
+            e.target.classList.remove('border-transparent', 'text-gray-500');
+            e.target.classList.add('border-emerald-500', 'text-white');
 
-// Simulating a quick login logic for demo purposes
-document.getElementById('btn-login-modal')?.addEventListener('click', () => {
-    // In a real app, this would open a modal with User/Pass
-    // We simulate logging in as Administrador for demo
-    const userRole = confirm("Demo Login:\nAceptar para ingresar como 'Administrador'.\nCancelar para ingresar como 'Usuario'.") ? 'Administrador' : 'Usuario';
-    login('AdminTest', userRole);
+            document.querySelectorAll('.auth-form').forEach(f => f.classList.add('hidden'));
+            document.getElementById(e.target.getAttribute('data-target')).classList.remove('hidden');
+        });
+    });
+
+    // Handle Login
+    document.getElementById('form-login')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const user = document.getElementById('login-user').value.trim();
+        const pass = document.getElementById('login-pass').value.trim();
+        const btn = document.getElementById('btn-submit-login');
+
+        btn.disabled = true;
+        btn.innerHTML = `<i class="material-icons-round spin-animation">sync</i> Verificando...`;
+
+        const res = await performAuthAction('loginUsuario', user, pass);
+
+        if (res.success) {
+            AuthState.user = { username: res.username, role: res.rol };
+            AuthState.isLoggedIn = true;
+            localStorage.setItem('inventory_user', JSON.stringify(AuthState.user));
+            updateAuthUI();
+            UI.showToast(`Bienvenido, ${res.username}`, 'success');
+            // Trigger load to populate dashboards immediately after login
+            if (typeof loadDashboard === 'function') loadDashboard();
+        } else {
+            UI.showToast(res.error || "Credenciales incorrectas", "error");
+        }
+
+        btn.disabled = false;
+        btn.innerHTML = `ENTRAR`;
+    });
+
+    // Handle Register
+    document.getElementById('form-register')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const user = document.getElementById('reg-user').value.trim();
+        const pass = document.getElementById('reg-pass').value.trim();
+        const btn = document.getElementById('btn-submit-reg');
+
+        btn.disabled = true;
+        btn.innerHTML = `<i class="material-icons-round spin-animation">sync</i> Creando...`;
+
+        const res = await performAuthAction('registrarUsuario', user, pass);
+
+        if (res.success) {
+            UI.showToast("Cuenta creada exitosamente. Ahora inicia sesión.", "success");
+            // Switch to login tab automatically
+            document.querySelector('.auth-tab[data-target="form-login"]').click();
+            document.getElementById('login-user').value = user;
+            document.getElementById('login-pass').value = '';
+        } else {
+            UI.showToast(res.error || "Error al registrar cuenta", "error");
+        }
+
+        btn.disabled = false;
+        btn.innerHTML = `CREAR CUENTA`;
+    });
+
+    // Logout
+    document.getElementById('btn-logout')?.addEventListener('click', () => {
+        AuthState.user = null;
+        AuthState.isLoggedIn = false;
+        localStorage.removeItem('inventory_user');
+        updateAuthUI();
+        UI.showToast("Sesión cerrada", "info");
+    });
 });
-
-// Initialize on load
-document.addEventListener('DOMContentLoaded', checkAuth);
 
 // Helper for other scripts to check RBAC
 function canProcessScan() {
-    return AuthState.isLoggedIn; // Assuming all logged users can scan. Change if only admins can.
+    return AuthState.isLoggedIn;
 }
 
 function isAdmin() {
