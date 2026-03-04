@@ -829,6 +829,226 @@ button {
 }
 
 /* =========================================
+   AETHER PRIME THEME (DASHBOARD)
+   ========================================= */
+.aether-bg {
+    background-color: #000000;
+}
+
+.aether-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #1f2937;
+    padding-bottom: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.aether-badge {
+    background-color: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.aether-badge::before {
+    content: '';
+    display: block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: #10b981;
+    box-shadow: 0 0 8px #10b981;
+}
+
+.insight-container {
+    margin-bottom: 2rem;
+}
+
+.insight-title {
+    color: #f59e0b;
+    /* yellow-500 */
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-transform: uppercase;
+}
+
+.insight-message {
+    color: #f8fafc;
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-top: 0.5rem;
+}
+
+.active-mon {
+    color: #10b981;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+}
+
+.metrics-row {
+    display: flex;
+    gap: 2rem;
+    align-items: flex-end;
+    margin-bottom: 1.5rem;
+}
+
+.metric-block {
+    display: flex;
+    flex-direction: column;
+}
+
+.metric-value {
+    font-size: 1.5rem;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.metric-label {
+    font-size: 0.7rem;
+    color: #6b7280;
+    /* gray-500 */
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: 0.3rem;
+}
+
+.btn-master-sync {
+    background-color: #fcd34d;
+    /* yellow-300 */
+    color: #000;
+    font-weight: 800;
+    font-size: 0.85rem;
+    letter-spacing: 0.05em;
+    padding: 0.75rem 1.5rem;
+    border-radius: 12px;
+    text-transform: uppercase;
+    transition: all 0.2s ease;
+}
+
+.btn-master-sync:hover {
+    background-color: #fbbf24;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(251, 191, 36, 0.4);
+}
+
+.aether-nav-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.aether-card {
+    background: #0f1115;
+    /* ultra dark */
+    border: 1px solid #1f2937;
+    /* gray-800 */
+    border-radius: 16px;
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.aether-card:hover {
+    background: #15181e;
+    border-color: #374151;
+    transform: translateY(-2px);
+}
+
+/* Variations */
+.aether-card.card-blue {
+    border-color: rgba(59, 130, 246, 0.3);
+}
+
+.aether-card.card-blue:hover {
+    border-color: rgba(59, 130, 246, 0.6);
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.1);
+}
+
+.aether-card.card-green {
+    border-color: rgba(16, 185, 129, 0.3);
+}
+
+.aether-card.card-green:hover {
+    border-color: rgba(16, 185, 129, 0.6);
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.1);
+}
+
+.aether-card-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #1f2937;
+    color: #9ca3af;
+}
+
+.aether-card.card-blue .aether-card-icon {
+    background: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+}
+
+.aether-card.card-green .aether-card-icon {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+}
+
+.aether-card-content {
+    flex: 1;
+}
+
+.aether-card-title {
+    color: #f3f4f6;
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin-bottom: 0.2rem;
+}
+
+.aether-card.card-blue .aether-card-title {
+    color: #60a5fa;
+}
+
+.aether-card.card-green .aether-card-title {
+    color: #34d399;
+}
+
+.aether-card-desc {
+    color: #6b7280;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.aether-card-arrow {
+    color: #4b5563;
+    transition: transform 0.3s ease;
+}
+
+.aether-card:hover .aether-card-arrow {
+    transform: translateX(5px);
+    color: #a1a1aa;
+}
+
+/* =========================================
    RESPONSIVE (MOBILE)
    ========================================= */
 @media (max-width: 768px) {

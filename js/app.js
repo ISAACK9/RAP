@@ -119,9 +119,9 @@ async function loadDashboard() {
                     const items = response.items || [];
                     const prestados = items.filter(i => i.Estado && i.Estado.toLowerCase() === 'en préstamo').length;
 
-                    document.getElementById('stat-total-equipos').innerText = items.length || 0;
-                    document.getElementById('stat-prestamo').innerText = prestados;
-                    document.getElementById('stat-disponibles').innerText = items.length - prestados;
+                    if (document.getElementById('stat-total-equipos')) document.getElementById('stat-total-equipos').innerText = (items.length || 0).toLocaleString();
+                    if (document.getElementById('stat-prestamo')) document.getElementById('stat-prestamo').innerText = prestados;
+                    if (document.getElementById('stat-disponibles')) document.getElementById('stat-disponibles').innerText = items.length - prestados;
 
                     // Render Recents from History Table
                     const list = document.getElementById('recent-movements-list');
@@ -690,3 +690,33 @@ window.guardarEvento = async function () {
         btnSubmit.disabled = false;
     }
 };
+
+// ==========================================
+// AETHER PRIME DASHBOARD LOGIC
+// ==========================================
+window.navigateFromHome = function (viewId) {
+    if (viewId === 'view-admin' && AuthState.user?.rol !== 'Administrador') {
+        UI.showToast("No tienes permisos de Administrador para ver esta sección", "error");
+        return;
+    }
+
+    document.querySelectorAll('.nav-links a').forEach(el => {
+        if (el.getAttribute('data-view') === viewId) el.click();
+    });
+};
+
+document.getElementById('btn-master-sync')?.addEventListener('click', async () => {
+    if (AuthState.user?.rol !== 'Administrador') {
+        UI.showToast("Prohibido: Sólo Administradores pueden realizar Master Sync", "warning");
+        return;
+    }
+    await LocalDriveSync.syncAll();
+});
+
+document.getElementById('btn-sincronizar-drive-home')?.addEventListener('click', async () => {
+    if (AuthState.user?.rol !== 'Administrador') {
+        UI.showToast("Prohibido: Sólo Administradores pueden sincronizar el Drive", "warning");
+        return;
+    }
+    await LocalDriveSync.syncAll();
+});

@@ -77,54 +77,87 @@
         <main class="content-area">
 
             <!-- Vistas -->
-            <section id="view-home" class="view active px-4 md:px-8 py-6">
-                <header class="flex justify-between items-center mb-8">
-                    <h1 class="text-2xl font-bold text-gray-800 tracking-tight">Inicio</h1>
-                    <button
-                        class="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-2xl shadow-lg shadow-blue-500/30 transition-all hover:scale-105 active:scale-95"
-                        title="Escanear Código" id="btn-scan-main">
-                        <i class="material-icons-round">qr_code_scanner</i>
-                    </button>
+            <section id="view-home" class="view active px-4 md:px-8 py-6 aether-bg"
+                style="background-color: #050505; min-height: 100%;">
+                <header class="aether-header">
+                    <h1 class="text-2xl font-bold text-white tracking-tight">RAP Inventario</h1>
+                    <div class="flex items-center gap-3">
+                        <button class="icon-btn text-gray-400 hover:text-white border-transparent bg-transparent"><i
+                                class="material-icons-round">search</i></button>
+                        <button class="icon-btn text-gray-400 hover:text-white border-transparent bg-transparent"><i
+                                class="material-icons-round">notifications</i></button>
+                        <button class="icon-btn text-gray-400 hover:text-white border-transparent bg-transparent"><i
+                                class="material-icons-round">dark_mode</i></button>
+                        <div class="aether-badge hidden md:flex">AETHER PRIME</div>
+                        <button class="icon-btn text-gray-400 hover:text-white border-transparent bg-transparent"><i
+                                class="material-icons-round">settings</i></button>
+                    </div>
                 </header>
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-                    <div
-                        class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-center gap-4 transition-transform hover:-translate-y-1">
-                        <div class="bg-blue-50 text-blue-600 p-3 rounded-xl"><i
-                                class="material-icons-round text-2xl">devices</i></div>
-                        <div>
-                            <p class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">Total Equipos
-                            </p>
-                            <p id="stat-total-equipos" class="text-3xl font-bold text-gray-900 leading-none">--</p>
-                        </div>
+
+                <div class="insight-container">
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="insight-title"><i class="material-icons-round text-sm">warning</i> OMNISCIENCE
+                            INTELLIGENCE</div>
+                        <div class="active-mon hidden sm:block">ACTIVE MONITORING</div>
                     </div>
-                    <div
-                        class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-center gap-4 transition-transform hover:-translate-y-1">
-                        <div class="bg-amber-50 text-amber-500 p-3 rounded-xl"><i
-                                class="material-icons-round text-2xl">warning</i></div>
-                        <div>
-                            <p class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">En Préstamo
-                            </p>
-                            <p id="stat-prestamo" class="text-3xl font-bold text-gray-900 leading-none">--</p>
-                        </div>
-                    </div>
-                    <div
-                        class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-center gap-4 transition-transform hover:-translate-y-1">
-                        <div class="bg-green-50 text-green-500 p-3 rounded-xl"><i
-                                class="material-icons-round text-2xl">check_circle</i></div>
-                        <div>
-                            <p class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">Disponibles
-                            </p>
-                            <p id="stat-disponibles" class="text-3xl font-bold text-gray-900 leading-none">--</p>
-                        </div>
+                    <div class="insight-message">Ecosistema estable. Parámetros de flujo dentro de los márgenes óptimos.
                     </div>
                 </div>
-                <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
-                    <h2 class="text-lg font-bold text-gray-800 mb-5">Últimos Movimientos</h2>
-                    <ul id="recent-movements-list" class="space-y-3">
-                        <li class="skeleton-item animate-pulse h-16 bg-gray-50 rounded-xl"></li>
-                        <li class="skeleton-item animate-pulse h-16 bg-gray-50 rounded-xl"></li>
-                        <li class="skeleton-item animate-pulse h-16 bg-gray-50 rounded-xl"></li>
-                    </ul>
+
+                <div class="metrics-row flex flex-wrap gap-8 items-end mb-8">
+                    <div class="metric-block">
+                        <div class="metric-value text-green-500">100%</div>
+                        <div class="metric-label">HEALTH</div>
+                    </div>
+                    <div class="metric-block">
+                        <div class="metric-value text-blue-500">0%</div>
+                        <div class="metric-label">FLOW RATE</div>
+                    </div>
+                    <div class="metric-block">
+                        <div class="metric-value text-white" id="stat-total-equipos">--</div>
+                        <div class="metric-label">TOTAL ASSETS</div>
+                    </div>
+
+                    <button id="btn-master-sync" class="btn-master-sync mt-4 sm:mt-0 ml-auto">EXECUTE MASTER
+                        SYNC</button>
+                </div>
+
+                <div class="aether-nav-stack flex flex-col gap-4">
+                    <div class="aether-card card-blue" onclick="window.navigateFromHome('view-admin')">
+                        <div class="aether-card-icon"><i class="material-icons-round">info</i></div>
+                        <div class="aether-card-content">
+                            <div class="aether-card-title">Gestión de Usuarios</div>
+                            <div class="aether-card-desc">Aprobar registros y gestionar permisos activos</div>
+                        </div>
+                        <i class="material-icons-round aether-card-arrow">chevron_right</i>
+                    </div>
+
+                    <div class="aether-card" onclick="window.navigateFromHome('view-inventory')">
+                        <div class="aether-card-icon"><i class="material-icons-round"
+                                style="color:#fcd34d;">grid_view</i></div>
+                        <div class="aether-card-content">
+                            <div class="aether-card-title text-white">Resumen General</div>
+                            <div class="aether-card-desc">Estado actual de operaciones e inventario</div>
+                        </div>
+                        <i class="material-icons-round aether-card-arrow">chevron_right</i>
+                    </div>
+
+                    <div class="aether-card card-green" id="btn-sincronizar-drive-home">
+                        <div class="aether-card-icon"><i class="material-icons-round">sync</i></div>
+                        <div class="aether-card-content">
+                            <div class="aether-card-title">Sincronizar Drive</div>
+                            <div class="aether-card-desc">Actualizar datos de los 5 archivos Excel</div>
+                        </div>
+                    </div>
+
+                    <div class="aether-card" onclick="window.navigateFromHome('view-events')">
+                        <div class="aether-card-icon"><i class="material-icons-round">insert_chart</i></div>
+                        <div class="aether-card-content">
+                            <div class="aether-card-title text-white">Estadísticas de Renta</div>
+                            <div class="aether-card-desc">Visualizar flujos de capital e incidencias</div>
+                        </div>
+                        <i class="material-icons-round aether-card-arrow">chevron_right</i>
+                    </div>
                 </div>
             </section>
 
