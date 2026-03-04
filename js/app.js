@@ -201,13 +201,18 @@ async function loadInventory() {
 function applyInventoryFilters() {
     if (!window.currentInventoryData) return;
 
-    const searchTerm = (document.getElementById('search-inventory')?.value || '').toLowerCase();
-    const filterArea = window.currentInventoryFilter;
+    const searchTerm = (document.getElementById('search-inventory')?.value || '').trim().toLowerCase();
+    const filterArea = window.currentInventoryFilter || 'all';
 
     const filtered = window.currentInventoryData.filter(item => {
-        const matchSearch = (item.ARTICULO && item.ARTICULO.toLowerCase().includes(searchTerm)) ||
-            (item.ACTIVO && String(item.ACTIVO).toLowerCase().includes(searchTerm));
-        const matchArea = filterArea === 'all' || (item.AREA && item.AREA === filterArea);
+        // Permitir que si searchTerm está vacío, matchSearch sea automáticamente true
+        const matchSearch = searchTerm === '' ? true : (
+            (item.ARTICULO && item.ARTICULO.toLowerCase().includes(searchTerm)) ||
+            (item.ACTIVO && String(item.ACTIVO).toLowerCase().includes(searchTerm))
+        );
+
+        // El CSV tiene espacios finales en el Área a veces o nombres exactos como 'AUDIO'
+        const matchArea = filterArea === 'all' || (item.AREA && item.AREA.trim().toUpperCase() === filterArea.toUpperCase());
 
         return matchSearch && matchArea;
     });
