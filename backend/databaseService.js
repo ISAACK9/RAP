@@ -319,14 +319,50 @@ class DatabaseService {
     }
 
     /**
-     * AUTO-SEED MASTER ADMIN (Auto-creación del dueño)
+     * AUTO-SEED MASTER ADMIN (Auto-creación del dueño y la pestaña Usuarios si no existe)
      */
     async seedMasterAdmin() {
         try {
-            console.log("[DB Service] Verificando cuenta Master Admin...");
+            console.log("[DB Service] Verificando infraestructura de Usuarios...");
+
+            // 1. Obtener la metadata del Spreadsheet para ver si "Usuarios" existe
+            const spreadsheet = await sheets.spreadsheets.get({
+                spreadsheetId: SPREADSHEET_ID
+            });
+
+            const sheetExists = spreadsheet.data.sheets.some(s => s.properties.title === 'Usuarios');
+
+            // 2. Si no existe, crear la pestaña y poner los encabezados
+            if (!sheetExists) {
+                console.log("[DB Service] La pestaña 'Usuarios' no existe. Creándola automáticamente...");
+
+                await sheets.spreadsheets.batchUpdate({
+                    spreadsheetId: SPREADSHEET_ID,
+                    resource: {
+                        requests: [{
+                            addSheet: {
+                                properties: {
+                                    title: 'Usuarios'
+                                }
+                            }
+                        }]
+                    }
+                });
+
+                // Poner encabezados
+                await sheets.spreadsheets.values.append({
+                    spreadsheetId: SPREADSHEET_ID,
+                    range: 'Usuarios!A1:D1',
+                    valueInputOption: 'USER_ENTERED',
+                    resource: { values: [['Fecha', 'Username', 'Password', 'Rol']] }
+                });
+
+                console.log("[DB Service] Pestaña 'Usuarios' configurada correctamente.");
+            }
+
+            // 3. Ya asegurada la pestaña, intentamos leer y sembrar la cuenta
             const usersResp = await this.obtenerUsuarios();
 
-            // Si falla la lectura o la tabla está vacía y da error de formato inicial, intentemos forzar encabezados
             if (usersResp.success) {
                 const isaacExists = usersResp.items.some(u => String(u.Username).toUpperCase() === 'ISAAC');
                 if (!isaacExists) {
@@ -340,11 +376,11 @@ class DatabaseService {
                     });
                     console.log("[DB Service] Cuenta Master creada exitosamente.");
                 } else {
-                    console.log("[DB Service] Cuenta Master ya existe.");
+                    console.log("[DB Service] Cuenta Master ya existe en la base de datos.");
                 }
             }
         } catch (e) {
-            console.error("[DB Service] Error en SeedMasterAdmin:", e.message);
+            console.error("[DB Service] Error en seedMasterAdmin:", e.message);
         }
     }
 
