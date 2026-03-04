@@ -21,33 +21,33 @@ function checkAuth() {
 }
 
 function updateAuthUI() {
-    const nameDisplay = document.getElementById('user-name-display');
-    const logoutBtn = document.getElementById('btn-logout');
-    const adminNavItem = document.getElementById('nav-item-admin');
-    const syncBtn = document.getElementById('btn-sync-inventory');
-
-    // Core Layout Sections
     const navBar = document.querySelector('.main-nav');
     const loginView = document.getElementById('view-login');
     const homeView = document.getElementById('view-home');
+    const nameDisplay = document.getElementById('user-name-display');
 
     if (AuthState.isLoggedIn && AuthState.user) {
-        // Logged In State
-        if (nameDisplay) nameDisplay.innerText = `${AuthState.user.username} (${AuthState.user.role})`;
-        if (logoutBtn) logoutBtn.classList.remove('hidden');
-
-        // Reveal the App, Hide Login
+        // 1. Mostrar Navbar y Datos de Usuario
         if (navBar) navBar.style.display = 'flex';
-        if (loginView) loginView.classList.remove('active', 'flex');
-        if (loginView) loginView.classList.add('hidden');
+        if (nameDisplay) nameDisplay.innerText = `${AuthState.user.username} (${AuthState.user.role})`;
 
-        // Default route to Home if coming from login
-        if (homeView && !document.querySelector('.view.active:not(#view-login)')) {
-            homeView.classList.add('active');
-            homeView.classList.remove('hidden');
+        // 2. Apagar Login abruptamente
+        if (loginView) {
+            loginView.classList.add('hidden');
+            loginView.classList.remove('active', 'flex');
+            loginView.style.display = 'none';
         }
 
-        // Apply RBAC
+        // 3. Encender Home View (Forzar Desbloqueo) si ninguna otra vista está activa
+        if (homeView && !document.querySelector('.view.active:not(#view-login)')) {
+            homeView.classList.remove('hidden');
+            // Timeout ligero para permitir el reflow del DOM antes de animar
+            setTimeout(() => homeView.classList.add('active'), 50);
+        }
+
+        // 4. Aplicar RBAC (Permisos de Admin)
+        const adminNavItem = document.getElementById('nav-item-admin');
+        const syncBtn = document.getElementById('btn-sync-inventory');
         if (isAdmin()) {
             if (adminNavItem) adminNavItem.classList.remove('hidden');
             if (syncBtn) syncBtn.classList.remove('hidden');
@@ -56,20 +56,16 @@ function updateAuthUI() {
             if (syncBtn) syncBtn.classList.add('hidden');
         }
     } else {
-        // Logged Out State -> Force Login View
+        // Bloqueo estricto: Ocultar todo y mostrar Solo Login
         if (navBar) navBar.style.display = 'none';
-
-        // Hide all other views
         document.querySelectorAll('.view').forEach(v => {
             v.classList.remove('active');
             v.classList.add('hidden');
         });
-
-        // Show strictly Login
         if (loginView) {
             loginView.classList.remove('hidden');
-            loginView.classList.add('active');
-            loginView.style.display = 'flex'; // For centering
+            loginView.style.display = 'flex';
+            setTimeout(() => loginView.classList.add('active'), 50);
         }
     }
 }

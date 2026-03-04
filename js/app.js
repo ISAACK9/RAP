@@ -3,6 +3,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     initNavigation();
     bindMainEvents();
+    setupModalInteractions(); // Lógica de cierre para modales
     loadDashboard(); // Load initial view
 });
 
@@ -437,32 +438,31 @@ document.getElementById('btn-refresh-history')?.addEventListener('click', loadHi
 // ADMIN PANEL (USER MANAGEMENT)
 // ==========================================
 async function loadAdminPanel() {
+    const tbody = document.getElementById('users-table-body');
+    if (!tbody) return;
+
+    // Mostrar estado de carga (Skeletons minimalistas)
+    tbody.innerHTML = `
+        <tr><td colspan="3" class="px-4 py-4"><div class="animate-pulse h-4 bg-gray-200 rounded w-full"></div></td></tr>
+        <tr><td colspan="3" class="px-4 py-4"><div class="animate-pulse h-4 bg-gray-200 rounded w-full"></div></td></tr>
+    `;
+
     try {
-        const tbody = document.getElementById('users-table-body');
-        if (!tbody) return;
-
-        // Mostrar estado de carga (Skeletons minimalistas)
-        tbody.innerHTML = `
-            <tr><td colspan="3" class="px-4 py-4"><div class="animate-pulse h-4 bg-gray-200 rounded w-full"></div></td></tr>
-            <tr><td colspan="3" class="px-4 py-4"><div class="animate-pulse h-4 bg-gray-200 rounded w-full"></div></td></tr>
-        `;
-
         // Llamar al backend
         const response = await DB.query('getUsers');
 
+        // 1. Validar si la respuesta lógica fracasó
         if (!response || !response.success) {
-            tbody.innerHTML = `<tr><td colspan="3" class="px-4 py-4 text-center text-red-500">Error cargando usuarios: ${response?.error || 'Desconocido'}</td></tr>`;
-            return;
+            throw new Error(response?.error || 'La pasarela de datos rechazó la conexión.');
         }
 
         const users = response.items || [];
+        tbody.innerHTML = '';
 
         if (users.length === 0) {
             tbody.innerHTML = `<tr><td colspan="3" class="px-4 py-4 text-center text-gray-500">No hay usuarios registrados.</td></tr>`;
             return;
         }
-
-        tbody.innerHTML = '';
         users.forEach(user => {
             const role = user.Rol || 'Usuario';
             // Prevenir auto-bloqueo: si es el Admin actual en pantalla, deshabilitar cambio
@@ -532,7 +532,15 @@ async function loadAdminPanel() {
         });
 
     } catch (e) {
-        console.error("Error in loadAdminPanel", e);
+        // 3. Romper el silencio: Mostrar alerta visual y registrar traza
+        console.error("Admin Panel Data Error:", e);
+        tableBody.innerHTML = `<tr><td colspan="4" class="text-center text-red-500 py-8">
+            <i class="material-icons-round align-middle mr-2">error_outline</i> 
+            Fallo crítico de red: ${e.message}
+        </td></tr>`;
+
+        // Lanzar Toast Flotante
+        UI.showToast(`Conexión fallida: ${e.message}`, "error");
     }
 }
 
@@ -565,6 +573,38 @@ document.querySelector('#view-events header button')?.addEventListener('click', 
     modal.classList.remove('hidden');
     await loadAvailableEquipmentForModal();
 });
+
+// Lógica para Cerrar Modal de Nuevo Evento
+function setupModalInteractions() {
+    const modal = document.getElementById('modal-evento');
+    const btnCancel = document.getElementById('btn-cancel-evento');
+    const closeIcon = document.querySelector('#modal-evento .btn-close');
+
+    const closeModal = () => {
+        if (modal) {
+            modal.classList.add('hidden');
+            // Limpiar estados residuales
+            currentEventSelection.clear();
+            document.getElementById('form-nuevo-evento')?.reset();
+            document.getElementById('evento-selected-count').innerText = '0';
+        }
+    };
+
+    // Vincular clic en botón cancelar
+    if (btnCancel) btnCancel.addEventListener('click', closeModal);
+
+    // Vincular clic en botón X
+    if (closeIcon) closeIcon.addEventListener('click', closeModal);
+
+    // Cerrar al hacer Click fuera del modal (Backdrop)
+    if (modal) {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                closeModal();
+            }
+        });
+    }
+}
 
 let currentModalRenderLimit = 100;
 
@@ -750,14 +790,21 @@ window.guardarEvento = async function () {
 // AETHER PRIME DASHBOARD LOGIC
 // ==========================================
 window.navigateFromHome = function (viewId) {
-    if (viewId === 'view-admin' && AuthState.user?.rol !== 'Administrador') {
+    // Remover el prefijo 'view-' si viene incluido para igualar con data-route
+    const cleanRoute = viewId.replace('view-', '');
+
+    if (cleanRoute === 'admin' && AuthState.user?.rol !== 'Administrador') {
         UI.showToast("No tienes permisos de Administrador para ver esta sección", "error");
         return;
     }
 
-    document.querySelectorAll('.nav-links a').forEach(el => {
-        if (el.getAttribute('data-view') === viewId) el.click();
-    });
+    // El HTML usa data-route="admin", NO data-view
+    const targetLink = document.querySelector(`.nav-links a[data-route="${cleanRoute}"]`);
+    if (targetLink) {
+        targetLink.click(); // Dispara el router nativo
+    } else {
+        console.error("No se encontró la ruta nativa para:", cleanRoute);
+    }
 };
 
 document.getElementById('btn-master-sync')?.addEventListener('click', async () => {
