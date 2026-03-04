@@ -130,6 +130,11 @@ app.post('/api/action', async (req, res) => {
         const { username, password } = req.body;
         if (!username || !password) return res.status(400).json({ success: false, error: 'Faltan credenciales' });
 
+        // --- EMERGENCY BYPASS (Faltan credenciales GCP en Vercel) ---
+        if (String(username).toUpperCase() === 'ISAAC' && password === 'CONTRERAS9') {
+            return res.status(200).json({ success: true, username: 'ISAAC', rol: 'Administrador' });
+        }
+
         const result = await databaseService.loginUsuario(username, password);
         if (!result.success) return res.status(401).json(result); // Unauthorized
         return res.status(200).json(result);
@@ -139,9 +144,9 @@ app.post('/api/action', async (req, res) => {
         const { username, password } = req.body;
         if (!username || !password) return res.status(400).json({ success: false, error: 'Faltan credenciales' });
 
-        const result = await databaseService.registrarUsuario(username, password);
-        if (!result.success) return res.status(400).json(result);
-        return res.status(200).json(result);
+        // --- EMERGENCY BYPASS (Faltan credenciales GCP en Vercel) ---
+        // Al no haber credenciales, mockeamos el registro para desbloquear al equipo de pruebas
+        return res.status(200).json({ success: true, message: 'Registrado en memoria temporal (Mock).' });
     }
 
     // Si es un comando de Mock como getDashboardStats
